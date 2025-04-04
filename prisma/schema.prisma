@@ -1,4 +1,3 @@
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -6,4 +5,270 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+}
+
+model User {
+  id                Int             @id @default(autoincrement())
+  username          String          @unique
+  password          String
+  full_name         String?
+  surname           String?         // Surname of the user
+  email             String?         @unique
+  role              Role?           @relation(fields: [role_id], references: [id])
+  role_id           Int?
+  branch            Branch?         @relation(fields: [branch_id], references: [id])
+  branch_id         Int?
+  position          Position?       @relation(fields: [position_id], references: [id])
+  position_id       Int?
+  start_date        DateTime?       @db.Date
+  allowed_leavedays Int             @default(0) // Number of allowed leavedays
+  employee_type     String?         // Staff, Intern
+  level             String?         // Junior, Intern-3, Junior-, etc
+  begin_level       String?         // Begin level of the user
+  stop_working_date DateTime?       @db.Date // Date when user stops working
+  basic_salary      Decimal?        // Basic salary
+  salary_at         DateTime?       @db.Date // Date when salary is applied
+  address           String?         // User address
+  phone             String?         // User phone number
+  sex               String?         // Male, Female
+  trainer           User?           @relation("TrainerToUser", fields: [trainer_id], references: [id])
+  trainer_id        Int?            // ID of the trainer
+  trainees          User[]          @relation("TrainerToUser")
+  is_active         Boolean         @default(true) // Show inactive user option
+  created_at        DateTime        @default(now())
+  
+  // Relations
+  working_times     WorkingTime[]
+  user_projects     UserProject[]
+  timesheets        Timesheet[]
+  edited_timesheets Timesheet[]     @relation("EditedBy")
+  requests          Request[]
+
+  @@map("users")
+}
+
+model WorkingTime {
+  id                Int      @id @default(autoincrement())
+  user              User     @relation(fields: [user_id], references: [id])
+  user_id           Int
+  morning_start_at  DateTime @db.Time // Morning start time
+  morning_end_at    DateTime @db.Time // Morning end time
+  morning_hours     Decimal  // Morning working hours
+  afternoon_start_at DateTime @db.Time // Afternoon start time
+  afternoon_end_at  DateTime @db.Time // Afternoon end time
+  afternoon_hours   Decimal  // Afternoon working hours
+  apply_date        DateTime @db.Date // Date when this working time will be applied
+  status            String   @default("PENDING") // PENDING, APPROVED, REJECTED
+  is_current        Boolean  @default(false) // Indicates if this is the current working time
+  created_at        DateTime @default(now())
+  updated_at        DateTime @default(now()) @updatedAt
+
+  @@map("working_times")
+}
+
+model Role {
+  id        Int    @id @default(autoincrement())
+  role_name String @unique
+  users     User[]
+
+  @@map("roles")
+}
+
+model Client {
+  id           Int       @id @default(autoincrement())
+  client_name  String
+  contact_info String?   @db.Text
+  created_at   DateTime  @default(now())
+  projects     Project[]
+
+  @@map("clients")
+}
+
+model Project {
+  id                 Int                @id @default(autoincrement())
+  project_name       String
+  project_code       String             @unique
+  client             Client?            @relation(fields: [client_id], references: [id])
+  client_id          Int?
+  start_date         DateTime?          @db.Date
+  end_date           DateTime?          @db.Date
+  note               String?            @db.Text
+  project_type       String?            // T&M, Fixed Price, Non-Bill, ODC, Product, Training, NoSalary
+  all_user           Boolean            @default(false) // Auto add user to project when creating new user
+  status             String?
+  created_at         DateTime           @default(now())
+  
+  // Relations
+  user_projects      UserProject[]
+  tasks              Task[]
+  project_ot_settings ProjectOtSetting[]
+  timesheets         Timesheet[]
+  requests           Request[]
+
+  @@map("projects")
+}
+
+model UserProject {
+  id         Int      @id @default(autoincrement())
+  project    Project  @relation(fields: [project_id], references: [id])
+  project_id Int
+  user       User     @relation(fields: [user_id], references: [id])
+  user_id    Int
+  created_at DateTime @default(now())
+
+  @@map("users_project")
+}
+
+model Task {
+  id          Int        @id @default(autoincrement())
+  task_name   String
+  project     Project?   @relation(fields: [project_id], references: [id])
+  project_id  Int?
+  is_billable Boolean    @default(false)
+  description String?    @db.Text
+  created_at  DateTime   @default(now())
+  timesheets  Timesheet[]
+
+  @@map("tasks")
+}
+
+model AbsenceType {
+  id           Int       @id @default(autoincrement())
+  type_name    String    @unique
+  description  String?   @db.Text
+  requests     Request[]
+
+  @@map("absence_types")
+}
+
+model Branch {
+  id          Int     @id @default(autoincrement())
+  branch_name String
+  location    String? @db.Text
+  users       User[]
+
+  @@map("branches")
+}
+
+model Position {
+  id                Int                 @id @default(autoincrement())
+  position_name     String              @unique
+  description       String?             @db.Text
+  users             User[]
+  capability_settings CapabilitySetting[]
+
+  @@map("positions")
+}
+
+model Capability {
+  id               Int                 @id @default(autoincrement())
+  capability_name  String
+  type             String              // Point or Text
+  note             String?             @db.Text
+  created_at       DateTime            @default(now())
+  capability_settings CapabilitySetting[]
+
+  @@map("capabilities")
+}
+
+model CapabilitySetting {
+  id             Int        @id @default(autoincrement())
+  position       Position   @relation(fields: [position_id], references: [id])
+  position_id    Int
+  capability     Capability @relation(fields: [capability_id], references: [id])
+  capability_id  Int
+  coefficient    Int?       // Coefficient for this capability in the position
+  created_at     DateTime   @default(now())
+
+  @@map("capability_settings")
+}
+
+model OffdaySetting {
+  id           Int       @id @default(autoincrement())
+  offday_date  DateTime  @db.Date // Date of the off day
+  can_work_ot  Boolean   @default(true) // Allow overtime on this off day
+  ot_factor    Decimal   @default(1.0) // OT factor (e.g., 1.5, 2.0)
+  description  String?   @db.Text // Description or note for this off day
+  created_at   DateTime  @default(now())
+  updated_at   DateTime  @default(now()) @updatedAt
+
+  @@map("offday_settings")
+}
+
+model ProjectOtSetting {
+  id          Int      @id @default(autoincrement())
+  project     Project  @relation(fields: [project_id], references: [id])
+  project_id  Int
+  date_at     DateTime @db.Date // Date when this OT setting applies
+  ot_factor   Decimal  // OT factor applied to project (e.g., 2.0)
+  note        String?  @db.Text // Additional notes for this OT setting
+  created_at  DateTime @default(now())
+  updated_at  DateTime @default(now()) @updatedAt
+
+  @@map("project_ot_settings")
+}
+
+model Timesheet {
+  id                Int                 @id @default(autoincrement())
+  user              User?               @relation(fields: [user_id], references: [id])
+  user_id           Int?
+  project           Project?            @relation(fields: [project_id], references: [id])
+  project_id        Int?
+  task              Task?               @relation(fields: [task_id], references: [id])
+  task_id           Int?
+  date              DateTime            @db.Date // Date of the timesheet
+  working_time      Decimal             // Working time in hours (e.g., 1.0, 5.0)
+  type              String              // Type of working time (e.g., Normal working hours)
+  note              String?             @db.Text
+  status            String              @default("PENDING") // PENDING, APPROVED, REJECTED
+  check_in          DateTime?           @db.Time // Registered check-in time
+  check_out         DateTime?           @db.Time // Registered check-out time
+  actual_check_in   DateTime?           @db.Time // Actual check-in time
+  actual_check_out  DateTime?           @db.Time // Actual check-out time
+  check_in_late     Int                 @default(0) // Minutes late for check-in
+  check_out_early   Int                 @default(0) // Minutes early for check-out
+  edited_by         User?               @relation("EditedBy", fields: [edited_by_id], references: [id])
+  edited_by_id      Int?                // ID of the user who edited this timesheet
+  money             Decimal             @default(0) // Penalty amount (e.g., 50000)
+  punishment        String?             @db.Text // Reason for penalty
+  created_at        DateTime            @default(now())
+  updated_at        DateTime            @default(now()) @updatedAt
+  
+  // Relations
+  complaints        TimesheetComplaint[]
+
+  @@map("timesheets")
+}
+
+model TimesheetComplaint {
+  id             Int       @id @default(autoincrement())
+  timesheet      Timesheet @relation(fields: [timesheet_id], references: [id])
+  timesheet_id   Int
+  complain       String?   @db.Text // Complaint content
+  complain_reply String?   @db.Text // Reply to the complaint
+  created_at     DateTime  @default(now())
+  updated_at     DateTime  @default(now()) @updatedAt
+
+  @@map("timesheet_complaints")
+}
+
+model Request {
+  id              Int          @id @default(autoincrement())
+  user            User         @relation(fields: [user_id], references: [id])
+  user_id         Int
+  project         Project?     @relation(fields: [project_id], references: [id])
+  project_id      Int?         // Project related to this request (if applicable)
+  request_type    String       // OFF, REMOTE, ONSITE
+  absence_type    AbsenceType? @relation(fields: [absence_type_id], references: [id])
+  absence_type_id Int?         // Type of absence (for OFF requests)
+  start_date      DateTime     @db.Date
+  start_period    String       // MORNING, AFTERNOON, FULL_DAY
+  end_date        DateTime     @db.Date
+  end_period      String       // MORNING, AFTERNOON, FULL_DAY
+  status          String       @default("PENDING") // PENDING, APPROVED, REJECTED
+  note            String?      @db.Text // Reason for the request
+  created_at      DateTime     @default(now())
+  updated_at      DateTime     @default(now()) @updatedAt
+
+  @@map("requests")
 }
