@@ -18,6 +18,8 @@ import { TimesheetsModule } from './modules/timesheets/timesheets.module';
 import { TimesheetComplaintsModule } from './modules/timesheet-complaints/timesheet-complaints.module';
 import { RequestsModule } from './modules/requests/requests.module';
 import { AuthModule } from './auth/auth.module';
+import { APP_GUARD } from '@nestjs/core';
+import { JwtAuthGuard } from './auth/guards/jwt.guard';
 
 @Module({
   imports: [
@@ -42,6 +44,16 @@ import { AuthModule } from './auth/auth.module';
     AuthModule,
   ],
   controllers: [],
-  providers: [],
+  providers: [
+    {
+      provide: APP_GUARD,
+      useClass: JwtAuthGuard,
+    },
+    // To add role-based protection, uncomment this:
+    // {
+    //   provide: APP_GUARD,
+    //   useClass: RolesGuard,
+    // },
+  ],
 })
 export class AppModule {}
