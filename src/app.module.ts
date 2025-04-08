@@ -17,6 +17,7 @@ import { ProjectOtSettingsModule } from './modules/project-ot-settings/project-o
 import { TimesheetsModule } from './modules/timesheets/timesheets.module';
 import { TimesheetComplaintsModule } from './modules/timesheet-complaints/timesheet-complaints.module';
 import { RequestsModule } from './modules/requests/requests.module';
+import { AuthModule } from './auth/auth.module';
 
 @Module({
   imports: [
@@ -38,6 +39,7 @@ import { RequestsModule } from './modules/requests/requests.module';
     TimesheetsModule,
     TimesheetComplaintsModule,
     RequestsModule,
+    AuthModule,
   ],
   controllers: [],
   providers: [],

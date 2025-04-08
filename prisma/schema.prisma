@@ -67,11 +67,33 @@ model WorkingTime {
 }
 
 model Role {
-  id        Int    @id @default(autoincrement())
-  role_name String @unique
-  users     User[]
+  id          Int             @id @default(autoincrement())
+  role_name   String          @unique
+  description String?         @db.Text // Added for the "Role description" field
+  users       User[]          // Existing relationship with User
+  permissions RolePermission[] // Many-to-many relationship with Permission
 
   @@map("roles")
+}
+
+model Permission {
+  id          Int             @id @default(autoincrement())
+  name        String          @unique // e.g., "VIEW_USERS", "ADD_NEW_USER"
+  description String?         @db.Text // Optional description of the permission
+  roles       RolePermission[] // Many-to-many relationship with Role
+
+  @@map("permissions")
+}
+
+model RolePermission {
+  id            Int        @id @default(autoincrement())
+  role          Role       @relation(fields: [role_id], references: [id])
+  role_id       Int
+  permission    Permission @relation(fields: [permission_id], references: [id])
+  permission_id Int
+  created_at    DateTime   @default(now())
+
+  @@map("role_permissions")
 }
 
 model Client {
