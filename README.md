@@ -1,4 +1,4 @@
 - Restructure file structure
 - Establish connection with postgreSQL through Docker using Prisma
 - Migrate + Modeling
-- JWT
+- JWT (Pipes, Guards, Decorators)W
