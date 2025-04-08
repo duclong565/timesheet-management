@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, ConflictException, InternalServerErrorException } from '@nestjs/common';
 import { CreateUserDto } from 'src/auth/dto/create-user.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
 
@@ -7,23 +7,34 @@ export class UsersService {
   constructor(private prisma: PrismaService) {}
 
   async createUser(createUserDto: CreateUserDto) {
-    const {
-      username,
-      password,
-      email,
-      name,
-      surname,
-    } = createUserDto;
-
-    return this.prisma.user.create({
-      data: {
+    try {
+      const {
         username,
         password,
         email,
         name,
         surname,
-      },
-    });
+      } = createUserDto;
+
+      return await this.prisma.user.create({
+        data: {
+          username,
+          password,
+          email,
+          name,
+          surname,
+        },
+      });
+    } catch (error) {
+      // Handle unique constraint violation
+      // P2002 is the error code for unique constraint violation in Prisma
+      if (error.code === 'P2002') {
+        throw new ConflictException(
+          `User with this ${error.meta?.target?.[0]} already exists`
+        );
+      }
+      throw new InternalServerErrorException('Failed to create user');
+    }
   }
 
   async findByUsername(username: string) {
@@ -38,7 +49,7 @@ export class UsersService {
     });
   }
 
-  async findOne(id: number) {
+  async findOne(id: string) {
     return this.prisma.user.findUnique({
       where: { id },
     });
