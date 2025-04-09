@@ -83,4 +83,51 @@ export class AuthService {
       token,
     };
   }
+
+  /*
+    Google OAuth2.0 
+  */
+
+  async validateOAuthUser(userData: any) {
+    let user = await this.userService.findByEmail(userData.email);
+
+    if (!user) {
+      //If user does not exist, create a new one
+      //Generate a unique username
+      const username = userData.email.split('@')[0] + Math.floor(Math.random() * 1000);
+
+      user = await this.userService.createUser({
+        username,
+        email: userData.email,
+        name: userData.firstName,
+        surname: userData.lastName,
+        password: await bcrypt.hash(Math.random().toString(36), 10), // Random password
+        allowedLeavedays: 0,
+        is_active: true,
+        googleId: userData.googleId,
+      });
+    } else if (!user.googleId) {
+      //If user exists but does not have a googleId, update the user
+      await this.userService.updateUser(user.id, { googleId: userData.googleId });
+    }
+    return user;
+  }
+
+  async googleLogin(req: any) {
+    if (!req.user) {
+      throw new UnauthorizedException('No user data from Google');
+    }
+
+    const payload = { username: req.user.username, sub: req.user.id };
+    const token = await this.jwtService.sign(payload);
+
+    return {
+      user: {
+        id: req.user.id,
+        username: req.user.username,
+        email: req.user.email,
+      },
+      token,
+    };
+  }
 }

@@ -9,6 +9,7 @@ export const registerSchema = z.object({
   surname: z.string().min(3).max(30),
   allowedLeavedays: z.number().default(0),
   is_active: z.boolean().default(true),
+  googleId: z.string().optional(),
 });
 
 export type RegisterDtoType = z.infer<typeof registerSchema>;
