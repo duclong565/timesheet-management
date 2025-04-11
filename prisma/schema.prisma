@@ -37,7 +37,7 @@ model User {
   trainees          User[]          @relation("TrainerToUser")
   is_active         Boolean         @default(true) // Show inactive user option
   created_at        DateTime        @default(now())
-  
+  updated_at        DateTime        @default(now()) @updatedAt
   // Relations
   working_times     WorkingTime[]
   user_projects     UserProject[]

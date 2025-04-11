@@ -108,7 +108,7 @@ export class AuthService {
       });
     } else if (!user.googleId) {
       //If user exists but does not have a googleId, update the user
-      await this.userService.updateUser(user.id, { googleId: userData.googleId });
+      await this.userService.update(user.id, { googleId: userData.googleId });
     }
     return user;
   }
