@@ -175,10 +175,15 @@ export class UsersService {
       role_id,
       branch_id,
       position_id,
-      is_active,
       sort_by = 'created_at',
       sort_order = 'desc',
     } = query;
+
+    // query sent from the client is string
+    let { is_active } = query;
+    if (is_active) {
+      is_active = is_active === 'true' ? true : false;
+    }
 
     const skip = (Number(page) - 1) * Number(limit);
 

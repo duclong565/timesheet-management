@@ -14,12 +14,12 @@ import {
   HttpStatus
 } from '@nestjs/common';
 import { UsersService } from './users.service';
-import { Roles } from 'src/auth/decorators/role.decorator';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { Public } from 'src/auth/decorators/public-route.decorator';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { ApiResponse, PaginatedResponse } from 'src/common/dto/api-response.dto';
+import { Roles } from 'src/auth/decorators/role.decorator';
 
 @Controller('users')
 export class UsersController {
