@@ -20,8 +20,8 @@ export class UsersService {
   async remove(id: string) {
     try {
       await this.prisma.user.delete({
-        where: { id }
-      })
+        where: { id },
+      });
 
       return { message: 'User deleted successfully' };
     } catch (error) {
@@ -124,14 +124,14 @@ export class UsersService {
         },
       },
     });
-  
+
     if (!user) {
       throw new NotFoundException(`User with ID ${id} not found`);
     }
-  
+
     // Remove sensitive data
     const { password, ...userWithoutPassword } = user;
-    
+
     return userWithoutPassword;
   }
 
@@ -146,10 +146,10 @@ export class UsersService {
           position: true,
         },
       });
-      
+
       // Remove sensitive data
       const { password, ...userWithoutPassword } = user;
-      
+
       return userWithoutPassword;
     } catch (error) {
       //P2025 is the error code for record not found in Prisma
@@ -176,7 +176,7 @@ export class UsersService {
       branch_id,
       position_id,
       is_active,
-      sort_by = 'createdAt',
+      sort_by = 'created_at',
       sort_order = 'desc',
     } = query;
 
@@ -251,27 +251,27 @@ export class UsersService {
 
   async changePassword(id: string, changePasswordDto: ChangePasswordDto) {
     const user = await this.prisma.user.findUnique({ where: { id } });
-    
+
     if (!user) {
       throw new NotFoundException('User not found');
     }
-    
+
     const isPasswordValid = await bcrypt.compare(
       changePasswordDto.currentPassword,
       user.password,
     );
-    
+
     if (!isPasswordValid) {
       throw new UnauthorizedException('Current password is incorrect');
     }
-    
+
     const hashedPassword = await bcrypt.hash(changePasswordDto.newPassword, 10);
-    
+
     await this.prisma.user.update({
       where: { id },
       data: { password: hashedPassword },
     });
-    
+
     return { message: 'Password updated successfully' };
   }
 
@@ -281,10 +281,10 @@ export class UsersService {
         where: { id },
         data: updateProfileDto,
       });
-      
+
       // Remove sensitive data
       const { password, ...userWithoutPassword } = user;
-      
+
       return userWithoutPassword;
     } catch (error) {
       if (error.code === 'P2025') {
@@ -311,7 +311,7 @@ export class UsersService {
           },
         },
       });
-      
+
       const usersByBranch = await this.prisma.branch.findMany({
         select: {
           id: true,
@@ -323,17 +323,17 @@ export class UsersService {
           },
         },
       });
-  
+
       return {
         totalUsers,
         activeUsers,
         inactiveUsers: totalUsers - activeUsers,
-        usersByRole: usersByRole.map(role => ({
+        usersByRole: usersByRole.map((role) => ({
           id: role.id,
           name: role.role_name,
           count: role._count.users,
         })),
-        usersByBranch: usersByBranch.map(branch => ({
+        usersByBranch: usersByBranch.map((branch) => ({
           id: branch.id,
           name: branch.branch_name,
           count: branch._count.users,
@@ -358,7 +358,7 @@ export class UsersService {
           },
         },
       });
-  
+
       const { password, ...userWithoutPassword } = user;
       return userWithoutPassword;
     } catch (error) {
