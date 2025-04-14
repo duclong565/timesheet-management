@@ -1,4 +1,8 @@
 - Restructure file structure
 - Establish connection with postgreSQL through Docker using Prisma
 - Migrate + Modeling
-- JWT (Pipes, Guards, Decorators)W
+- JWT (Pipes, Guards, Decorators)
+- Oauth
+- Seeddata
+- User module
+- Request Module - Ongoing
