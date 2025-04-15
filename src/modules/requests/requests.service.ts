@@ -1,11 +1,13 @@
 import {
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   Injectable,
 } from '@nestjs/common';
 import { CreateRequestDto } from './dto/create-request.dto';
 import { UpdateRequestDto } from './dto/update-request.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
+import { ResponseRequestDto } from './dto/response-request.dto';
 
 @Injectable()
 export class RequestsService {
@@ -17,7 +19,6 @@ export class RequestsService {
     start_period: string,
     end_period: string,
   ): number {
-
     start_date = new Date(start_date);
     end_date = new Date(end_date);
 
@@ -68,10 +69,7 @@ export class RequestsService {
       note,
     } = createRequestDto;
 
-    let {
-      start_date,
-      end_date,
-    } = createRequestDto;
+    let { start_date, end_date } = createRequestDto;
 
     start_date = new Date(start_date);
     end_date = new Date(end_date);
@@ -148,6 +146,114 @@ export class RequestsService {
     return {
       message: 'Request created successfully',
       request,
+    };
+  }
+
+  async responseRequest(
+    editorId: string,
+    responseRequestDto: ResponseRequestDto,
+  ) {
+    const { requestId, action } = responseRequestDto;
+
+    const request = await this.prismaService.request.findUnique({
+      where: { id: requestId },
+      include: {
+        user: true,
+        absence_type: true,
+      },
+    });
+    const editor = await this.prismaService.user.findUnique({
+      where: { id: editorId },
+      select: {
+        role: true,
+      },
+    });
+
+    if (!request) {
+      throw new BadRequestException('Request not found');
+    }
+    if (!editor) {
+      throw new BadRequestException('Editor not found');
+    }
+    if (
+      !editor.role ||
+      !['HR', 'PM', 'ADMIN'].includes(editor.role.role_name)
+    ) {
+      throw new BadRequestException('Editor role not found');
+    }
+    if (request.status !== 'PENDING') {
+      throw new BadRequestException('Only pending requests can be processed');
+    }
+
+    let daysOff = 0;
+    if (request.request_type === 'OFF') {
+      daysOff = this.calculateDaysOff(
+        request.start_date,
+        request.end_date,
+        request.start_period,
+        request.end_period,
+      );
+    }
+
+    const updateData: any = {
+      status: action === 'APPROVE' ? 'APPROVED' : 'REJECTED',
+      modified_by_id: editorId,
+      modified_at: new Date(),
+    };
+
+    if (request.request_type === 'OFF') {
+      if (!request.absence_type)
+        throw new BadRequestException('Absence type not found');
+
+      if (action === 'APPROVE' && request.absence_type.deduct_from_allowed) {
+        if (daysOff > request.user.allowed_leavedays) {
+          throw new BadRequestException(
+            'You have exceeded your allowed leave days',
+          );
+        }
+
+        updateData.user = {
+          update: {
+            allowed_leavedays: {
+              decrement: daysOff,
+            },
+          },
+        };
+      }
+
+      if (
+        action === 'APPROVE' &&
+        !request.absence_type.deduct_from_allowed &&
+        request.absence_type.available_days !== null
+      ) {
+        const usedDays = await this.prismaService.request.count({
+          where: {
+            user_id: request.user.id,
+            absence_type_id: request.absence_type.id,
+            status: 'APPROVED',
+          },
+        });
+
+        if (usedDays + daysOff > request.absence_type.available_days) {
+          throw new BadRequestException(
+            `User has exceeded the available days for this absence type (${request.absence_type.type_name}) (required: ${daysOff}, remaining: ${request.absence_type.available_days - usedDays})`,
+          );
+        }
+      }
+    }
+
+    const updatedRequest = await this.prismaService.request.update({
+      where: { id: requestId },
+      data: updateData,
+      include: {
+        user: true,
+        absence_type: true,
+      },
+    });
+
+    return {
+      message: `Request ${action.toLowerCase()}d successfully`,
+      request: updatedRequest,
     };
   }
 

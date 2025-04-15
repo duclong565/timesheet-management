@@ -15,6 +15,8 @@ import { UpdateRequestDto } from './dto/update-request.dto';
 import { JwtAuthGuard } from 'src/auth/guards/jwt.guard';
 import { RolesGuard } from 'src/auth/guards/roles.guard';
 import { GetUser } from 'src/common/decorator/get-user.decorator';
+import { Roles } from 'src/auth/decorators/role.decorator';
+import { ResponseRequestDto } from './dto/response-request.dto';
 
 @Controller('requests')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -22,11 +24,20 @@ export class RequestsController {
   constructor(private readonly requestsService: RequestsService) {}
 
   @Post()
-  createRequest(
+  async createRequest(
     @Body() createRequestDto: CreateRequestDto,
     @GetUser('id') userId: string,
   ) {
     return this.requestsService.createRequest(userId, createRequestDto);
+  }
+
+  @Post('response')
+  @Roles('HR', 'PM', 'ADMIN')
+  async responseRequest(
+    @Body() createRequestDto: ResponseRequestDto,
+    @GetUser('id') editorId: string,
+  ) {
+    return this.requestsService.responseRequest(editorId, createRequestDto);
   }
 
   @Get()
