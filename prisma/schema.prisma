@@ -22,7 +22,7 @@ model User {
   position          Position?       @relation(fields: [position_id], references: [id])
   position_id       String?
   start_date        DateTime?       @db.Date
-  allowed_leavedays Int             @default(0) // Number of allowed leavedays
+  allowed_leavedays Int             @default(12) // Number of allowed leavedays
   employee_type     String?         // Staff, Intern
   level             String?         // Junior, Intern-3, Junior-, etc
   begin_level       String?         // Begin level of the user
@@ -156,9 +156,11 @@ model Task {
 }
 
 model AbsenceType {
-  id           String    @id @default(uuid())
-  type_name    String    @unique
-  description  String?   @db.Text
+  id                  String    @id @default(uuid())
+  type_name           String    @unique
+  description         String?   @db.Text
+  available_days      Int       // Number of days available for this absence type
+  deduct_from_allowed Boolean   @default(true) // Deduct from allowed leavedays
   requests     Request[]
 
   @@map("absence_types")
