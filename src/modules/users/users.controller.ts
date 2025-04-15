@@ -20,6 +20,7 @@ import { UpdateProfileDto } from './dto/update-profile.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { ApiResponse, PaginatedResponse } from 'src/common/dto/api-response.dto';
 import { Roles } from 'src/auth/decorators/role.decorator';
+import { GetUser } from 'src/common/decorator/get-user.decorator';
 
 @Controller('users')
 export class UsersController {
@@ -50,8 +51,8 @@ export class UsersController {
   }
 
   @Patch('me')
-  async updateProfile(@Request() req, @Body() updateProfileDto: UpdateProfileDto) {
-    const user = await this.usersService.updateProfile(req.user.id, updateProfileDto);
+  async updateProfile(@GetUser('id') userId: string, @Body() updateProfileDto: UpdateProfileDto) {
+    const user = await this.usersService.updateProfile(userId, updateProfileDto);
     return new ApiResponse(user, 'Profile updated successfully');
   }
 

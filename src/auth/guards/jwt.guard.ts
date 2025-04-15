@@ -4,6 +4,11 @@ import { AuthGuard } from '@nestjs/passport';
 import { Observable } from 'rxjs';
 import { IS_PUBLIC_KEY } from '../decorators/public-route.decorator';
 
+/* 
+  Uncommented code for debugging purposes
+*/
+
+
 @Injectable()
 export class JwtAuthGuard extends AuthGuard('jwt') {
   constructor(private reflector: Reflector) {
@@ -15,7 +20,7 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
   ): boolean | Promise<boolean> | Observable<boolean> {
     const request = context.switchToHttp().getRequest();
     const path = request.route?.path || 'unknown';
-    console.log(`[JwtAuthGuard] Processing request for path: ${path}`);
+    // console.log(`[JwtAuthGuard] Processing request for path: ${path}`);
     
     // Check if route is public first
     const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
@@ -23,7 +28,7 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
       context.getClass(),
     ]);
 
-    console.log(`[JwtAuthGuard] Is public route: ${isPublic}`);
+    // console.log(`[JwtAuthGuard] Is public route: ${isPublic}`);
 
     if (isPublic) {
       return true;
@@ -31,7 +36,7 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
     
     // Enhanced auth header logging with improved validation
     const authHeader = request.headers.authorization;
-    console.log(`[JwtAuthGuard] Auth header present: ${!!authHeader}`);
+    // console.log(`[JwtAuthGuard] Auth header present: ${!!authHeader}`);
     
     if (!authHeader) {
       console.log('[JwtAuthGuard] No Authorization header provided');
@@ -45,11 +50,11 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
       } else {
         const token = parts[1];
         
-        if (!token || token.length < 20) { // Basic length validation
-          console.log(`[JwtAuthGuard] Token appears too short: ${token.length} chars`);
-        } else {
-          console.log(`[JwtAuthGuard] Token format looks valid: ${token.substring(0, 10)}...${token.substring(token.length - 5)}`);
-        }
+        // if (!token || token.length < 20) { // Basic length validation
+        //   console.log(`[JwtAuthGuard] Token appears too short: ${token.length} chars`);
+        // } else {
+        //   console.log(`[JwtAuthGuard] Token format looks valid: ${token.substring(0, 10)}...${token.substring(token.length - 5)}`);
+        // }
       }
     }
     

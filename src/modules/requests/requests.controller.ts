@@ -1,15 +1,32 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  UseGuards,
+  HttpCode,
+} from '@nestjs/common';
 import { RequestsService } from './requests.service';
 import { CreateRequestDto } from './dto/create-request.dto';
 import { UpdateRequestDto } from './dto/update-request.dto';
+import { JwtAuthGuard } from 'src/auth/guards/jwt.guard';
+import { RolesGuard } from 'src/auth/guards/roles.guard';
+import { GetUser } from 'src/common/decorator/get-user.decorator';
 
 @Controller('requests')
+@UseGuards(JwtAuthGuard, RolesGuard)
 export class RequestsController {
   constructor(private readonly requestsService: RequestsService) {}
 
   @Post()
-  create(@Body() createRequestDto: CreateRequestDto) {
-    return this.requestsService.create(createRequestDto);
+  createRequest(
+    @Body() createRequestDto: CreateRequestDto,
+    @GetUser('id') userId: string,
+  ) {
+    return this.requestsService.createRequest(userId, createRequestDto);
   }
 
   @Get()
