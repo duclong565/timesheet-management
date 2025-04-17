@@ -18,9 +18,11 @@ import { TimesheetsModule } from './modules/timesheets/timesheets.module';
 import { TimesheetComplaintsModule } from './modules/timesheet-complaints/timesheet-complaints.module';
 import { RequestsModule } from './modules/requests/requests.module';
 import { AuthModule } from './auth/auth.module';
-import { APP_GUARD } from '@nestjs/core';
+import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { JwtAuthGuard } from './auth/guards/jwt.guard';
 import { RolesGuard } from './auth/guards/roles.guard';
+import { AuditLogsModule } from './modules/audit-logs/audit-logs.module';
+import { AuditLogInterceptor } from './modules/audit-logs/interceptor/audit-log.interceptor';
 
 @Module({
   imports: [
@@ -43,6 +45,7 @@ import { RolesGuard } from './auth/guards/roles.guard';
     TimesheetComplaintsModule,
     RequestsModule,
     AuthModule,
+    AuditLogsModule,
   ],
   controllers: [],
   providers: [
@@ -55,6 +58,10 @@ import { RolesGuard } from './auth/guards/roles.guard';
       provide: APP_GUARD,
       useClass: RolesGuard,
     },
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: AuditLogInterceptor,
+    }
   ],
 })
 export class AppModule {}

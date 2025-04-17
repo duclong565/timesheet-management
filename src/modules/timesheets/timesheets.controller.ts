@@ -12,12 +12,15 @@ import { CreateTimesheetDto } from './dto/create-timesheet.dto';
 // import { UpdateTimesheetDto } from './dto/update-timesheet.dto';
 import { GetUser } from 'src/common/decorator/get-user.decorator';
 import { ResponseTimesheetDto } from './dto/response-timesheet.dto';
+import { AuditLog } from '../audit-logs/decorator/audit-log.decorator';
+import { createTimesheetAuditConfig, responseTimesheetAuditConfig } from '../audit-logs/config/audit-logs.config';
 
 @Controller('timesheets')
 export class TimesheetsController {
   constructor(private readonly timesheetsService: TimesheetsService) {}
 
   @Post()
+  @AuditLog(createTimesheetAuditConfig())
   createTimesheet(
     @Body() createTimesheetDto: CreateTimesheetDto,
     @GetUser('id') userId: string,
@@ -26,6 +29,7 @@ export class TimesheetsController {
   }
 
   @Post('response')
+  @AuditLog(responseTimesheetAuditConfig())
   responseTimesheet(
     @Body() reponseTimesheetDto: ResponseTimesheetDto,
     @GetUser('id') userId: string,
