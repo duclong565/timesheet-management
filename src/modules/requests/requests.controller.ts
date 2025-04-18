@@ -8,6 +8,7 @@ import {
   Delete,
   UseGuards,
   HttpCode,
+  Query,
 } from '@nestjs/common';
 import { RequestsService } from './requests.service';
 import { CreateRequestDto } from './dto/create-request.dto';
@@ -17,6 +18,8 @@ import { RolesGuard } from 'src/auth/guards/roles.guard';
 import { GetUser } from 'src/common/decorator/get-user.decorator';
 import { Roles } from 'src/auth/decorators/role.decorator';
 import { ResponseRequestDto } from './dto/response-request.dto';
+import { QueryRequestsDto } from './dto/query-request.dto';
+import { TeamCalendarDto } from './dto/team-calendar.dto';
 
 @Controller('requests')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -38,6 +41,32 @@ export class RequestsController {
     @GetUser('id') editorId: string,
   ) {
     return this.requestsService.responseRequest(editorId, createRequestDto);
+  }
+
+  @Get('my-requests')
+  async getMyRequests(
+    @GetUser('id') userId: string,
+    @Query() queryDto: QueryRequestsDto,
+  ) {
+    return this.requestsService.getMyRequests(userId, queryDto);
+  }
+
+  @Get('pending-requests')
+  @Roles('HR', 'PM', 'ADMIN')
+  async getPendingRequests(
+    @GetUser('id') approverId: string,
+    @Query() queryDto: QueryRequestsDto,
+  ) {
+    return this.requestsService.getPendingRequests(approverId, queryDto);
+  }
+
+  @Get('team-calendar')
+  @Roles('HR', 'PM', 'ADMIN')
+  async getTeamCalendar(
+    @GetUser('id') userId: string,
+    @Query() queryDto: TeamCalendarDto,
+  ) {
+    return this.requestsService.getTeamCalendar(userId, queryDto);
   }
 
   @Get()
