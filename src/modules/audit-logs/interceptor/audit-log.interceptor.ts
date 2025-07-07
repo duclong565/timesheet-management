@@ -43,7 +43,7 @@ export class AuditLogInterceptor implements NestInterceptor {
         const { tableName, action, getRecordId, getDetails } = auditLogMetadata;
 
         const recordId = getRecordId
-          ? getRecordId(data)
+          ? getRecordId(data, request)
           : data.id || data.request?.id || data.timesheet?.id;
 
         if (!recordId) {
@@ -59,7 +59,7 @@ export class AuditLogInterceptor implements NestInterceptor {
           action,
           modified_by_id: userId,
           details,
-        })
+        });
       }),
     );
   }

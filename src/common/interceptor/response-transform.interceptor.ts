@@ -23,9 +23,9 @@ export class ResponseTransformInterceptor implements NestInterceptor {
           return data;
         }
 
-        // If have message/request or data structure, convert to ApiResponse 
+        // If have message/request or data structure, convert to ApiResponse
         if (data && data.message && (data.request || data.data)) {
-          return new ApiResponse(data.request || data.data, data.message, true);
+          return new ApiResponse(data.request || data.data, data.message);
         }
 
         // If have data and pagination, convert to PaginatedResponse
@@ -37,7 +37,7 @@ export class ResponseTransformInterceptor implements NestInterceptor {
           );
         }
 
-        return new ApiResponse(data, 'Operation completed successfully', true);
+        return new ApiResponse(data, 'Operation completed successfully');
       }),
     );
   }

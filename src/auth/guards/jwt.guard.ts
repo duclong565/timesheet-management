@@ -49,12 +49,6 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
         console.log(`[JwtAuthGuard] Received: ${authHeader.substring(0, 15)}... (${parts.length} parts)`);
       } else {
         const token = parts[1];
-        
-        // if (!token || token.length < 20) { // Basic length validation
-        //   console.log(`[JwtAuthGuard] Token appears too short: ${token.length} chars`);
-        // } else {
-        //   console.log(`[JwtAuthGuard] Token format looks valid: ${token.substring(0, 10)}...${token.substring(token.length - 5)}`);
-        // }
       }
     }
     

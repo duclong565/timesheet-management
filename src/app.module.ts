@@ -21,8 +21,11 @@ import { AuthModule } from './auth/auth.module';
 import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { JwtAuthGuard } from './auth/guards/jwt.guard';
 import { RolesGuard } from './auth/guards/roles.guard';
+import { EnhancedRolesGuard } from './auth/guards/enhanced-roles.guard';
 import { AuditLogsModule } from './modules/audit-logs/audit-logs.module';
 import { AuditLogInterceptor } from './modules/audit-logs/interceptor/audit-log.interceptor';
+import { HealthModule } from './health/health.module';
+import { DashboardModule } from './modules/dashboard/dashboard.module';
 
 @Module({
   imports: [
@@ -46,6 +49,8 @@ import { AuditLogInterceptor } from './modules/audit-logs/interceptor/audit-log.
     RequestsModule,
     AuthModule,
     AuditLogsModule,
+    HealthModule,
+    DashboardModule,
   ],
   controllers: [],
   providers: [
@@ -53,15 +58,15 @@ import { AuditLogInterceptor } from './modules/audit-logs/interceptor/audit-log.
       provide: APP_GUARD,
       useClass: JwtAuthGuard,
     },
-    // To add role-based protection, uncomment/comment this:
+    // Enhanced role-based protection with self-access and logging
     {
       provide: APP_GUARD,
-      useClass: RolesGuard,
+      useClass: EnhancedRolesGuard,
     },
     {
       provide: APP_INTERCEPTOR,
       useClass: AuditLogInterceptor,
-    }
+    },
   ],
 })
 export class AppModule {}

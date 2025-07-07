@@ -1,0 +1,188 @@
+# Cursor Rules for NestJS Timesheet Management System
+
+## Core Development Principles
+
+- **Stability First**: Prioritize working, stable code over optimization
+- **Error Prevention**: Always check for potential errors and edge cases
+- **Consistency**: Follow existing patterns and conventions in the codebase
+- **Practical Code**: Focus on maintainable, readable solutions
+
+## Project Architecture Guidelines
+
+### NestJS Structure
+
+- Follow the established module structure: `src/modules/[feature]/`
+- Each module should have: controller, service, DTOs, entities (if needed)
+- Use proper dependency injection patterns
+- Import `PrismaModule` in every feature module that needs database access
+
+### Database & Prisma
+
+- Always use UUIDs for primary keys (already migrated in this project)
+- Use transactions for operations that modify multiple tables
+- Handle Prisma error codes properly:
+  - `P2002`: Unique constraint violation → `ConflictException`
+  - `P2025`: Record not found → `NotFoundException`
+  - `P2003`: Foreign key constraint → `BadRequestException`
+- Always include relevant relations in queries when needed for the response
+
+### Error Handling
+
+- Use appropriate NestJS exceptions:
+  - `BadRequestException` for validation errors
+  - `NotFoundException` for missing resources
+  - `ConflictException` for duplicate data
+  - `ForbiddenException` for authorization issues
+  - `UnauthorizedException` for authentication issues
+  - `InternalServerErrorException` for unexpected errors
+- Wrap try-catch around database operations
+- Provide meaningful error messages to users
+- Log detailed errors for debugging but return sanitized messages to clients
+
+## Code Standards
+
+### Validation & DTOs
+
+- Use Zod schemas for all DTOs (following existing pattern)
+- Export both schema and inferred type: `export type CreateXDto = z.infer<typeof createXSchema>;`
+- Validate all inputs, especially:
+  - UUID format for IDs
+  - Date formats and ranges
+  - Required fields for different request types
+  - Business logic constraints (e.g., end_date >= start_date)
+
+### Service Layer
+
+- Always validate user permissions in service methods
+- Check if entities exist before operations
+- Use descriptive method names: `createRequest`, `responseTimesheet`, `getUserStats`
+- Implement proper pagination with `skip` and `take`
+- Include search and filtering capabilities where appropriate
+
+### Controller Layer
+
+- Use proper HTTP methods and status codes
+- Implement role-based guards: `@Roles('ADMIN', 'HR')` or `@RoleOptions({ allowSelfAccess: true })`
+- Use `@GetUser('id')` decorator to get current user ID
+- Return standardized responses using `ApiResponse` and `PaginatedResponse`
+- Add audit logging with `@AuditLog()` decorator for important operations
+
+### Authentication & Authorization
+
+- All endpoints must be protected by default (using global `JwtAuthGuard`)
+- Use `@Public()` decorator only for auth endpoints (login, register, google auth)
+- Implement proper role checking with enhanced role guard
+- Allow self-access where appropriate using `@RoleOptions({ allowSelfAccess: true, paramName: 'id' })`
+- Always verify user is active before allowing operations
+
+## Specific Patterns to Follow
+
+### Database Queries
+
+```typescript
+// Always handle pagination
+const skip = (Number(page) - 1) * Number(limit);
+const [total, items] = await Promise.all([
+  this.prisma.model.count({ where }),
+  this.prisma.model.findMany({ where, skip, take: Number(limit), orderBy }),
+]);
+
+// Always include necessary relations
+const item = await this.prisma.model.findUnique({
+  where: { id },
+  include: {
+    relatedModel: { select: { id: true, name: true } },
+    _count: { select: { children: true } },
+  },
+});
+```
+
+### Error Handling Pattern
+
+```typescript
+try {
+  const result = await this.prisma.model.create({ data });
+  return result;
+} catch (error) {
+  if (error.code === 'P2002') {
+    throw new ConflictException(
+      `Item with this ${error.meta?.target?.[0]} already exists`,
+    );
+  }
+  if (error.code === 'P2025') {
+    throw new NotFoundException(`Item with ID ${id} not found`);
+  }
+  throw new InternalServerErrorException('Failed to create item');
+}
+```
+
+### Controller Response Pattern
+
+```typescript
+@Get()
+@Roles('ADMIN', 'HR')
+async findAll(@Query() query: any) {
+  const result = await this.service.findAll(query);
+  return new PaginatedResponse(
+    result.data,
+    result.pagination,
+    'Items retrieved successfully'
+  );
+}
+
+@Get(':id')
+@RoleOptions({ allowSelfAccess: true, paramName: 'id' })
+async findOne(@Param('id') id: string) {
+  const item = await this.service.findOne(id);
+  return new ApiResponse(item, 'Item retrieved successfully');
+}
+```
+
+## Security Considerations
+
+- Never return password fields in responses
+- Validate UUIDs before database queries
+- Check user permissions before any data access
+- Sanitize user inputs to prevent injection attacks
+- Use transactions for operations that modify multiple related records
+
+## Common Pitfalls to Avoid
+
+- Don't forget to check if user/resource exists before operations
+- Don't expose sensitive data in error messages
+- Don't skip validation on optional fields that have business rules
+- Don't forget to handle the case where user is inactive
+- Don't use hardcoded role names - use the established role checking pattern
+- Don't skip audit logging on important operations
+- Don't forget to handle overlapping date ranges in time-based features
+
+## Testing Approach
+
+- Write tests for edge cases and error scenarios first
+- Test authentication and authorization thoroughly
+- Verify error handling returns appropriate HTTP status codes
+- Test data validation with invalid inputs
+- Ensure audit logs are created for tracked operations
+
+## Performance Guidelines
+
+- Use `select` to limit returned fields when not all are needed
+- Implement proper indexing in Prisma schema for frequently queried fields
+- Use `include` judiciously - only include what's needed for the response
+- Consider using `_count` instead of fetching full relations when only count is needed
+- Batch database operations when possible
+
+## Code Review Checklist
+
+- [ ] Proper error handling with try-catch
+- [ ] Input validation with Zod schemas
+- [ ] Appropriate HTTP status codes and exceptions
+- [ ] Role-based access control implemented
+- [ ] Audit logging for important operations
+- [ ] Database transactions for multi-table operations
+- [ ] Pagination implemented where applicable
+- [ ] User existence and activity checks
+- [ ] UUID validation for ID parameters
+- [ ] Consistent response format using ApiResponse/PaginatedResponse
+
+Remember: **Code that works reliably is better than code that's perfectly optimized but breaks in edge cases.**

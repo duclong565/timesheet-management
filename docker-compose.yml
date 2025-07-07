@@ -1,0 +1,102 @@
+version: '3.8'
+
+networks:
+  timesheet-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+
+services:
+  # Main NestJS Application
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: timesheet-management-app
+    restart: unless-stopped
+    ports:
+      - '3000:3000'
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=postgresql://postgres:duclong@postgre_db:5432/timesheet_management?schema=public
+      - REDIS_URL=redis://redis_db:6379
+      - JWT_SECRET=duclongdeptrainhatvutru565
+      - JWT_EXPIRES_IN=1d
+      - GOOGLE_CLIENT_ID=247503870150-f3h8241b6clrg59dug7v3h14mqsv2pmn.apps.googleusercontent.com
+      - GOOGLE_CLIENT_SECRET=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
+      - GOOGLE_CALLBACK_URL=http://localhost:3000/time-management/auth/google/callback
+    env_file:
+      - .env
+    depends_on:
+      postgre_db:
+        condition: service_healthy
+      redis_db:
+        condition: service_started
+    networks:
+      - timesheet-network
+    healthcheck:
+      test: ['CMD', 'node', 'healthcheck.js']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # PostgreSQL Database
+  postgre_db:
+    image: postgres:15-alpine
+    container_name: timesheet-management-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: duclong
+      POSTGRES_DB: timesheet_management
+      POSTGRES_INITDB_ARGS: '--encoding=UTF-8 --lc-collate=en_US.UTF-8 --lc-ctype=en_US.UTF-8'
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./prisma/migrations:/docker-entrypoint-initdb.d
+    networks:
+      - timesheet-network
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres -d timesheet_management']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # Redis Database
+  redis_db:
+    image: redis/redis-stack:latest
+    container_name: timesheet-management-redis
+    restart: unless-stopped
+    ports:
+      - '6379:6379'
+    volumes:
+      - redis_data:/data
+    networks:
+      - timesheet-network
+    command: redis-stack-server --requirepass duclong565
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 10s
+      timeout: 3s
+      retries: 3
+
+  # Redis Insight for Redis Management
+  redis-insight:
+    image: redislabs/redisinsight:latest
+    container_name: timesheet-management-redis-insight
+    restart: unless-stopped
+    ports:
+      - '8001:8001'
+    volumes:
+      - ./docker/redis-insight:/db
+    depends_on:
+      - redis_db
+    networks:
+      - timesheet-network

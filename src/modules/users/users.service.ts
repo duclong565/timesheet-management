@@ -167,7 +167,7 @@ export class UsersService {
 
   // Find all users with pagination and filtering
   // @param query - The query parameters for pagination and filtering
-  async findAll(query: any) {
+  async findAll(userId: string, query: any) {
     const {
       page = 1,
       limit = 10,
@@ -202,6 +202,7 @@ export class UsersService {
     if (branch_id) where.branch_id = branch_id;
     if (position_id) where.position_id = position_id;
     if (is_active !== undefined) where.is_active = is_active;
+    if (userId) where.id = userId;
 
     const orderBy: any = {};
     orderBy[sort_by] = sort_order.toLowerCase();

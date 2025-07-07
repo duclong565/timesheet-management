@@ -1,0 +1,36 @@
+version: '3.8'
+
+services:
+  # Development NestJS Application (with hot reload)
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    volumes:
+      - .:/app
+      - /app/node_modules
+    environment:
+      - NODE_ENV=development
+      - DATABASE_URL=postgresql://postgres:duclong@postgre_db:5432/timesheet_management?schema=public
+      - REDIS_URL=redis://redis_db:6379
+      - JWT_SECRET=duclongdeptrainhatvutru565
+      - JWT_EXPIRES_IN=1d
+      - GOOGLE_CLIENT_ID=247503870150-f3h8241b6clrg59dug7v3h14mqsv2pmn.apps.googleusercontent.com
+      - GOOGLE_CLIENT_SECRET=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
+      - GOOGLE_CALLBACK_URL=http://localhost:3000/time-management/auth/google/callback
+    command: npm run start:dev
+    healthcheck:
+      test:
+        ['CMD', 'curl', '-f', 'http://localhost:3000/time-management/health']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # Development PostgreSQL with more verbose logging
+  postgre_db:
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: duclong
+      POSTGRES_DB: timesheet_management
+    command: postgres -c log_statement=all -c log_destination=stderr -c log_min_messages=info

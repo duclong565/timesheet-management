@@ -9,6 +9,8 @@ import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { UsersService } from 'src/modules/users/users.service';
 import * as bcrypt from 'bcrypt';
+import { Prisma } from '@prisma/client';
+import { RolesService } from 'src/modules/roles/roles.service';
 
 @Injectable()
 export class AuthService {
