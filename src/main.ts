@@ -7,7 +7,27 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-  app.enableCors();
+  
+  // Enable CORS with explicit configuration
+  app.enableCors({
+    origin: [
+      'http://localhost:3001', // Frontend development server
+      'http://localhost:3000', // Alternative frontend port
+      'http://127.0.0.1:3001',
+      'http://127.0.0.1:3000',
+    ],
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: [
+      'Origin',
+      'X-Requested-With',
+      'Content-Type',
+      'Accept',
+      'Authorization',
+      'Bearer',
+    ],
+    credentials: true,
+  });
+  
   app.setGlobalPrefix('time-management');
 
   app.useGlobalPipes(new ZodValidationPipe());
@@ -39,7 +59,7 @@ async function bootstrap() {
       'dev@company.com',
     )
     .setLicense('MIT', 'https://opensource.org/licenses/MIT')
-    .addServer('http://localhost:3000', 'Development Server')
+    .addServer('http://localhost:3000/time-management', 'Development Server')
     .addServer('https://api.company.com', 'Production Server')
     .addBearerAuth(
       {

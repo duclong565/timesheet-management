@@ -12,6 +12,8 @@ import { ChangePasswordDto } from './dto/change-password.dto';
 import * as bcrypt from 'bcrypt';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { CreateProfileChangeRequestDto } from './dto/profile-change-request.dto';
+import { ReviewProfileChangeRequestDto } from './dto/profile-change-request.dto';
 
 @Injectable()
 export class UsersService {
@@ -373,5 +375,81 @@ export class UsersService {
       }
       throw new InternalServerErrorException('Failed to update user role');
     }
+  }
+
+  // --- Profile Change Request Methods ---
+
+  async createProfileChangeRequest(
+    userId: string,
+    dto: CreateProfileChangeRequestDto,
+  ) {
+    // Only allow if at least one field is present
+    if (!Object.keys(dto).length) {
+      throw new ConflictException('No changes submitted');
+    }
+    return this.prisma.profileChangeRequest.create({
+      data: {
+        userId,
+        requestedData: dto,
+        status: 'PENDING',
+      },
+    });
+  }
+
+  async getMyProfileChangeRequests(userId: string) {
+    return this.prisma.profileChangeRequest.findMany({
+      where: { userId },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  async getPendingProfileChangeRequests() {
+    return this.prisma.profileChangeRequest.findMany({
+      where: { status: 'PENDING' },
+      include: { user: true },
+      orderBy: { createdAt: 'asc' },
+    });
+  }
+
+  async reviewProfileChangeRequest(
+    requestId: string,
+    dto: ReviewProfileChangeRequestDto,
+    reviewerId: string,
+  ) {
+    const request = await this.prisma.profileChangeRequest.findUnique({
+      where: { id: requestId },
+      include: { user: true },
+    });
+    if (!request)
+      throw new NotFoundException('Profile change request not found');
+    if (request.status !== 'PENDING')
+      throw new ConflictException('Request already reviewed');
+
+    let updatedRequest;
+    if (dto.action === 'APPROVE') {
+      // Update the user profile with requestedData
+      await this.prisma.user.update({
+        where: { id: request.userId },
+        data: request.requestedData,
+      });
+      updatedRequest = await this.prisma.profileChangeRequest.update({
+        where: { id: requestId },
+        data: {
+          status: 'APPROVED',
+          reviewedById: reviewerId,
+          reviewedAt: new Date(),
+        },
+      });
+    } else if (dto.action === 'REJECT') {
+      updatedRequest = await this.prisma.profileChangeRequest.update({
+        where: { id: requestId },
+        data: {
+          status: 'REJECTED',
+          reviewedById: reviewerId,
+          reviewedAt: new Date(),
+        },
+      });
+    }
+    return updatedRequest;
   }
 }

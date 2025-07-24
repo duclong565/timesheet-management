@@ -19,6 +19,10 @@ import { Public } from 'src/auth/decorators/public-route.decorator';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import {
+  CreateProfileChangeRequestDto,
+  ReviewProfileChangeRequestDto,
+} from './dto/profile-change-request.dto';
+import {
   ApiResponse,
   PaginatedResponse,
 } from 'src/common/dto/api-response.dto';
@@ -43,7 +47,7 @@ export class UsersController {
     action: 'GET',
     getRecordId: (result: any) => result.id,
     getDetails: (result: any, request: any) => ({
-      user_id: request.user.id, 
+      user_id: request.user.id,
     }),
   })
   @Roles('ADMIN', 'HR')
@@ -79,6 +83,7 @@ export class UsersController {
     return new ApiResponse(user, 'Profile retrieved successfully');
   }
 
+  @Roles('ADMIN', 'HR')
   @Patch('me')
   async updateProfile(
     @GetUser('id') userId: string,
@@ -102,6 +107,48 @@ export class UsersController {
       changePasswordDto,
     );
     return new ApiResponse(null, result.message);
+  }
+
+  // --- Profile Change Request Endpoints ---
+
+  @Post('me/change-request')
+  async createProfileChangeRequest(
+    @GetUser('id') userId: string,
+    @Body() dto: CreateProfileChangeRequestDto,
+  ) {
+    const request = await this.usersService.createProfileChangeRequest(
+      userId,
+      dto,
+    );
+    return new ApiResponse(request, 'Profile change request submitted');
+  }
+
+  @Get('me/change-requests')
+  async getMyProfileChangeRequests(@GetUser('id') userId: string) {
+    const requests = await this.usersService.getMyProfileChangeRequests(userId);
+    return new ApiResponse(requests, 'Fetched your profile change requests');
+  }
+
+  @Get('profile-change-requests/pending')
+  @Roles('ADMIN', 'HR')
+  async getPendingProfileChangeRequests() {
+    const requests = await this.usersService.getPendingProfileChangeRequests();
+    return new ApiResponse(requests, 'Fetched pending profile change requests');
+  }
+
+  @Post('profile-change-requests/:id/review')
+  @Roles('ADMIN', 'HR')
+  async reviewProfileChangeRequest(
+    @Param('id') id: string,
+    @Body() dto: ReviewProfileChangeRequestDto,
+    @GetUser('id') reviewerId: string,
+  ) {
+    const result = await this.usersService.reviewProfileChangeRequest(
+      id,
+      dto,
+      reviewerId,
+    );
+    return new ApiResponse(result, 'Profile change request reviewed');
   }
 
   @Get(':id')

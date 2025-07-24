@@ -1,0 +1,2075 @@
+{
+  "info": {
+    "name": "NestJS Timesheet Management System",
+    "description": "Complete API collection for the timesheet management system with all modules and endpoints",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "version": "1.0.0"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{authToken}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000",
+      "type": "string"
+    },
+    {
+      "key": "authToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "userId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "roleId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "projectId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "timesheetId",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "Register User",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"john.doe@company.com\",\n  \"password\": \"SecurePass123!\",\n  \"name\": \"John\",\n  \"surname\": \"Doe\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/register",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "register"]
+            }
+          }
+        },
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.success && response.data && response.data.token) {",
+                  "        pm.collectionVariables.set('authToken', response.data.token);",
+                  "        pm.collectionVariables.set('userId', response.data.user.id);",
+                  "        console.log('Token saved:', response.data.token);",
+                  "    }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@company.com\",\n  \"password\": \"AdminPass123!\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "login"]
+            }
+          }
+        },
+        {
+          "name": "Google OAuth Callback",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/auth/google/callback",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "google", "callback"]
+            }
+          }
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/auth/logout",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "logout"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Users",
+      "item": [
+        {
+          "name": "Get All Users",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/users?page=1&limit=10&search=&sort_by=name&sort_order=asc",
+              "host": ["{{baseUrl}}"],
+              "path": ["users"],
+              "query": [
+                {"key": "page", "value": "1"},
+                {"key": "limit", "value": "10"},
+                {"key": "search", "value": ""},
+                {"key": "sort_by", "value": "name"},
+                {"key": "sort_order", "value": "asc"}
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get User Stats",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/users/stats",
+              "host": ["{{baseUrl}}"],
+              "path": ["users", "stats"]
+            }
+          }
+        },
+        {
+          "name": "Get My Profile",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/users/me",
+              "host": ["{{baseUrl}}"],
+              "path": ["users", "me"]
+            }
+          }
+        },
+        {
+          "name": "Update My Profile",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"John Updated\",\n  \"surname\": \"Doe Updated\",\n  \"phone\": \"+1-555-123-4567\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/users/me",
+              "host": ["{{baseUrl}}"],
+              "path": ["users", "me"]
+            }
+          }
+        },
+        {
+          "name": "Change Password",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"current_password\": \"OldPass123!\",\n  \"new_password\": \"NewPass123!\",\n  \"confirm_password\": \"NewPass123!\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/users/me/change-password",
+              "host": ["{{baseUrl}}"],
+              "path": ["users", "me", "change-password"]
+            }
+          }
+        },
+        {
+          "name": "Get User by ID",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/users/{{userId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["users", "{{userId}}"]
+            }
+          }
+        },
+        {
+          "name": "Update User",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"John\",\n  \"surname\": \"Doe\",\n  \"email\": \"john.doe@company.com\",\n  \"is_active\": true,\n  \"position_id\": \"position-uuid\",\n  \"branch_id\": \"branch-uuid\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/users/{{userId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["users", "{{userId}}"]
+            }
+          }
+        },
+        {
+          "name": "Update User Role",
+          "request": {
+            "method": "PATCH",
+            "url": {
+              "raw": "{{baseUrl}}/users/{{userId}}/role/{{roleId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["users", "{{userId}}", "role", "{{roleId}}"]
+            }
+          }
+        },
+        {
+          "name": "Delete User",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{baseUrl}}/users/{{userId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["users", "{{userId}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Roles",
+      "item": [
+        {
+          "name": "Create Role",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"role_name\": \"TEAM_LEAD\",\n  \"description\": \"Team Lead with project oversight capabilities\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/roles",
+              "host": ["{{baseUrl}}"],
+              "path": ["roles"]
+            }
+          }
+        },
+        {
+          "name": "Get All Roles",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/roles?page=1&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["roles"],
+              "query": [
+                {"key": "page", "value": "1"},
+                {"key": "limit", "value": "10"}
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Role by ID",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/roles/{{roleId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["roles", "{{roleId}}"]
+            }
+          }
+        },
+        {
+          "name": "Update Role",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"role_name\": \"SENIOR_TEAM_LEAD\",\n  \"description\": \"Senior Team Lead with enhanced project management capabilities\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/roles/{{roleId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["roles", "{{roleId}}"]
+            }
+          }
+        },
+        {
+          "name": "Delete Role",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{baseUrl}}/roles/{{roleId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["roles", "{{roleId}}"]
+            }
+          }
+        },
+        {
+          "name": "Assign Permission to Role",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"permission_id\": \"permission-uuid\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/roles/{{roleId}}/permissions",
+              "host": ["{{baseUrl}}"],
+              "path": ["roles", "{{roleId}}", "permissions"]
+            }
+          }
+        },
+        {
+          "name": "Remove Permission from Role",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{baseUrl}}/roles/{{roleId}}/permissions/permission-uuid",
+              "host": ["{{baseUrl}}"],
+              "path": ["roles", "{{roleId}}", "permissions", "permission-uuid"]
+            }
+          }
+        },
+        {
+          "name": "Get Role Permissions",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/roles/{{roleId}}/permissions",
+              "host": ["{{baseUrl}}"],
+              "path": ["roles", "{{roleId}}", "permissions"]
+            }
+          }
+        },
+        {
+          "name": "Get Users with Role",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/roles/{{roleId}}/users",
+              "host": ["{{baseUrl}}"],
+              "path": ["roles", "{{roleId}}", "users"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Timesheets",
+      "item": [
+        {
+          "name": "Create Timesheet",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"date\": \"2024-01-15\",\n  \"user_id\": \"{{userId}}\",\n  \"project_id\": \"{{projectId}}\",\n  \"task_id\": \"task-uuid\",\n  \"hours_worked\": 8.0,\n  \"description\": \"Working on user authentication feature\",\n  \"is_overtime\": false\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/timesheets",
+              "host": ["{{baseUrl}}"],
+              "path": ["timesheets"]
+            }
+          }
+        },
+        {
+          "name": "Response to Timesheet",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"timesheet_id\": \"{{timesheetId}}\",\n  \"status\": \"APPROVED\",\n  \"note\": \"Good work on the authentication feature\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/timesheets/response",
+              "host": ["{{baseUrl}}"],
+              "path": ["timesheets", "response"]
+            }
+          }
+        },
+        {
+          "name": "Get All Timesheets",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/timesheets?page=1&limit=10&date_from=2024-01-01&date_to=2024-12-31&status=PENDING&project_id={{projectId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["timesheets"],
+              "query": [
+                {"key": "page", "value": "1"},
+                {"key": "limit", "value": "10"},
+                {"key": "date_from", "value": "2024-01-01"},
+                {"key": "date_to", "value": "2024-12-31"},
+                {"key": "status", "value": "PENDING"},
+                {"key": "project_id", "value": "{{projectId}}"}
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Timesheet by ID",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/timesheets/{{timesheetId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["timesheets", "{{timesheetId}}"]
+            }
+          }
+        },
+        {
+          "name": "Delete Timesheet",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{baseUrl}}/timesheets/{{timesheetId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["timesheets", "{{timesheetId}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Working Times",
+      "item": [
+        {
+          "name": "Create Working Time",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"user_id\": \"{{userId}}\",\n  \"apply_date\": \"2024-01-15\",\n  \"morning_hours\": 4.0,\n  \"afternoon_hours\": 4.0,\n  \"note\": \"Standard full-time schedule\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/working-times",
+              "host": ["{{baseUrl}}"],
+              "path": ["working-times"]
+            }
+          }
+        },
+        {
+          "name": "Get All Working Times",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/working-times?page=1&limit=10&user_id={{userId}}&date_from=2024-01-01&date_to=2024-12-31",
+              "host": ["{{baseUrl}}"],
+              "path": ["working-times"],
+              "query": [
+                {"key": "page", "value": "1"},
+                {"key": "limit", "value": "10"},
+                {"key": "user_id", "value": "{{userId}}"},
+                {"key": "date_from", "value": "2024-01-01"},
+                {"key": "date_to", "value": "2024-12-31"}
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get My Current Working Time",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/working-times/my-current",
+              "host": ["{{baseUrl}}"],
+              "path": ["working-times", "my-current"]
+            }
+          }
+        },
+        {
+          "name": "Get Working Time by ID",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/working-times/working-time-uuid",
+              "host": ["{{baseUrl}}"],
+              "path": ["working-times", "working-time-uuid"]
+            }
+          }
+        },
+        {
+          "name": "Update Working Time",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"morning_hours\": 4.5,\n  \"afternoon_hours\": 3.5,\n  \"note\": \"Modified schedule for training\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/working-times/working-time-uuid",
+              "host": ["{{baseUrl}}"],
+              "path": ["working-times", "working-time-uuid"]
+            }
+          }
+        },
+        {
+          "name": "Delete Working Time",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{baseUrl}}/working-times/working-time-uuid",
+              "host": ["{{baseUrl}}"],
+              "path": ["working-times", "working-time-uuid"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Requests",
+      "item": [
+        {
+          "name": "Create Request",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"request_type\": \"VACATION\",\n  \"start_date\": \"2024-02-01\",\n  \"end_date\": \"2024-02-05\",\n  \"reason\": \"Annual vacation with family\",\n  \"absence_type_id\": \"absence-type-uuid\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/requests",
+              "host": ["{{baseUrl}}"],
+              "path": ["requests"]
+            }
+          }
+        },
+        {
+          "name": "Response to Request",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"request_id\": \"request-uuid\",\n  \"status\": \"APPROVED\",\n  \"note\": \"Vacation approved for the requested dates\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/requests/response",
+              "host": ["{{baseUrl}}"],
+              "path": ["requests", "response"]
+            }
+          }
+        },
+        {
+          "name": "Get All Requests",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/requests?page=1&limit=10&status=PENDING&request_type=VACATION&start_date=2024-01-01&end_date=2024-12-31",
+              "host": ["{{baseUrl}}"],
+              "path": ["requests"],
+              "query": [
+                {"key": "page", "value": "1"},
+                {"key": "limit", "value": "10"},
+                {"key": "status", "value": "PENDING"},
+                {"key": "request_type", "value": "VACATION"},
+                {"key": "start_date", "value": "2024-01-01"},
+                {"key": "end_date", "value": "2024-12-31"}
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Team Calendar",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/requests/team-calendar?year=2024&month=2",
+              "host": ["{{baseUrl}}"],
+              "path": ["requests", "team-calendar"],
+              "query": [
+                {"key": "year", "value": "2024"},
+                {"key": "month", "value": "2"}
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Request by ID",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/requests/request-uuid",
+              "host": ["{{baseUrl}}"],
+              "path": ["requests", "request-uuid"]
+            }
+          }
+        },
+        {
+          "name": "Update Request",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"Updated reason for vacation request\",\n  \"end_date\": \"2024-02-07\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/requests/request-uuid",
+              "host": ["{{baseUrl}}"],
+              "path": ["requests", "request-uuid"]
+            }
+          }
+        },
+        {
+          "name": "Delete Request",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{baseUrl}}/requests/request-uuid",
+              "host": ["{{baseUrl}}"],
+              "path": ["requests", "request-uuid"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Projects",
+      "item": [
+        {
+          "name": "Create Project",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"project_name\": \"E-commerce Platform\",\n  \"project_code\": \"ECOM-2024\",\n  \"description\": \"Modern e-commerce platform with React and NestJS\",\n  \"client_id\": \"client-uuid\",\n  \"start_date\": \"2024-01-01\",\n  \"end_date\": \"2024-12-31\",\n  \"status\": \"ACTIVE\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/projects",
+              "host": ["{{baseUrl}}"],
+              "path": ["projects"]
+            }
+          }
+        },
+        {
+          "name": "Get All Projects",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/projects?page=1&limit=10&search=&status=ACTIVE&client_id=",
+              "host": ["{{baseUrl}}"],
+              "path": ["projects"],
+              "query": [
+                {"key": "page", "value": "1"},
+                {"key": "limit", "value": "10"},
+                {"key": "search", "value": ""},
+                {"key": "status", "value": "ACTIVE"},
+                {"key": "client_id", "value": ""}
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Project by ID",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/projects/{{projectId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["projects", "{{projectId}}"]
+            }
+          }
+        },
+        {
+          "name": "Update Project",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"project_name\": \"Updated E-commerce Platform\",\n  \"description\": \"Updated description with new features\",\n  \"status\": \"IN_PROGRESS\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/projects/{{projectId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["projects", "{{projectId}}"]
+            }
+          }
+        },
+        {
+          "name": "Delete Project",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{baseUrl}}/projects/{{projectId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["projects", "{{projectId}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Tasks",
+      "item": [
+        {
+          "name": "Create Task",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"task_name\": \"User Authentication API\",\n  \"description\": \"Implement JWT-based authentication system\",\n  \"project_id\": \"{{projectId}}\",\n  \"is_billable\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/tasks",
+              "host": ["{{baseUrl}}"],
+              "path": ["tasks"]
+            }
+          }
+        },
+        {
+          "name": "Get All Tasks",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/tasks?page=1&limit=10&search=&project_id={{projectId}}&is_billable=true",
+              "host": ["{{baseUrl}}"],
+              "path": ["tasks"],
+              "query": [
+                {"key": "page", "value": "1"},
+                {"key": "limit", "value": "10"},
+                {"key": "search", "value": ""},
+                {"key": "project_id", "value": "{{projectId}}"},
+                {"key": "is_billable", "value": "true"}
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Task by ID",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/tasks/task-uuid",
+              "host": ["{{baseUrl}}"],
+              "path": ["tasks", "task-uuid"]
+            }
+          }
+        },
+        {
+          "name": "Update Task",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"task_name\": \"Updated User Authentication API\",\n  \"description\": \"Enhanced JWT authentication with refresh tokens\",\n  \"is_billable\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/tasks/task-uuid",
+              "host": ["{{baseUrl}}"],
+              "path": ["tasks", "task-uuid"]
+            }
+          }
+        },
+        {
+          "name": "Delete Task",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{baseUrl}}/tasks/task-uuid",
+              "host": ["{{baseUrl}}"],
+              "path": ["tasks", "task-uuid"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Clients",
+      "item": [
+        {
+          "name": "Create Client",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"client_name\": \"TechCorp Solutions Inc.\",\n  \"contact_info\": \"Email: info@techcorp.com\\nPhone: +1-555-123-4567\\nAddress: 123 Tech Street, Silicon Valley, CA\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/clients",
+              "host": ["{{baseUrl}}"],
+              "path": ["clients"]
+            }
+          }
+        },
+        {
+          "name": "Get All Clients",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/clients?page=1&limit=10&search=&has_projects=true",
+              "host": ["{{baseUrl}}"],
+              "path": ["clients"],
+              "query": [
+                {"key": "page", "value": "1"},
+                {"key": "limit", "value": "10"},
+                {"key": "search", "value": ""},
+                {"key": "has_projects", "value": "true"}
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Client by ID",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/clients/client-uuid",
+              "host": ["{{baseUrl}}"],
+              "path": ["clients", "client-uuid"]
+            }
+          }
+        },
+        {
+          "name": "Update Client",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"client_name\": \"TechCorp Solutions LLC\",\n  \"contact_info\": \"Email: support@techcorp.com\\nPhone: +1-555-123-4567\\nNew contact person: Jane Smith\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/clients/client-uuid",
+              "host": ["{{baseUrl}}"],
+              "path": ["clients", "client-uuid"]
+            }
+          }
+        },
+        {
+          "name": "Delete Client",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{baseUrl}}/clients/client-uuid",
+              "host": ["{{baseUrl}}"],
+              "path": ["clients", "client-uuid"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Branches",
+      "item": [
+        {
+          "name": "Create Branch",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"branch_name\": \"Ho Chi Minh Office\",\n  \"address\": \"123 Nguyen Hue Street, District 1, Ho Chi Minh City\",\n  \"phone\": \"+84-28-1234-5678\",\n  \"manager_id\": \"manager-uuid\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/branches",
+              "host": ["{{baseUrl}}"],
+              "path": ["branches"]
+            }
+          }
+        },
+        {
+          "name": "Get All Branches",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/branches",
+              "host": ["{{baseUrl}}"],
+              "path": ["branches"]
+            }
+          }
+        },
+        {
+          "name": "Get Branch by ID",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/branches/branch-uuid",
+              "host": ["{{baseUrl}}"],
+              "path": ["branches", "branch-uuid"]
+            }
+          }
+        },
+        {
+          "name": "Update Branch",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"branch_name\": \"Ho Chi Minh Main Office\",\n  \"address\": \"456 Le Loi Street, District 1, Ho Chi Minh City\",\n  \"phone\": \"+84-28-1234-9999\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/branches/branch-uuid",
+              "host": ["{{baseUrl}}"],
+              "path": ["branches", "branch-uuid"]
+            }
+          }
+        },
+        {
+          "name": "Delete Branch",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{baseUrl}}/branches/branch-uuid",
+              "host": ["{{baseUrl}}"],
+              "path": ["branches", "branch-uuid"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Positions",
+      "item": [
+        {
+          "name": "Create Position",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"position_name\": \"Senior Full-Stack Developer\",\n  \"description\": \"Experienced developer working on both frontend and backend technologies\",\n  \"requirements\": \"5+ years experience in React, Node.js, and database design\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/positions",
+              "host": ["{{baseUrl}}"],
+              "path": ["positions"]
+            }
+          }
+        },
+        {
+          "name": "Get All Positions",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/positions?page=1&limit=10&search=&sort_by=position_name&sort_order=asc",
+              "host": ["{{baseUrl}}"],
+              "path": ["positions"],
+              "query": [
+                {"key": "page", "value": "1"},
+                {"key": "limit", "value": "10"},
+                {"key": "search", "value": ""},
+                {"key": "sort_by", "value": "position_name"},
+                {"key": "sort_order", "value": "asc"}
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Position by ID",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/positions/position-uuid",
+              "host": ["{{baseUrl}}"],
+              "path": ["positions", "position-uuid"]
+            }
+          }
+        },
+        {
+          "name": "Update Position",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"position_name\": \"Lead Full-Stack Developer\",\n  \"description\": \"Team lead with expertise in full-stack development\",\n  \"requirements\": \"7+ years experience, team leadership skills, React, Node.js, database design\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/positions/position-uuid",
+              "host": ["{{baseUrl}}"],
+              "path": ["positions", "position-uuid"]
+            }
+          }
+        },
+        {
+          "name": "Delete Position",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{baseUrl}}/positions/position-uuid",
+              "host": ["{{baseUrl}}"],
+              "path": ["positions", "position-uuid"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Capabilities",
+      "item": [
+        {
+          "name": "Create Capability",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"capability_name\": \"JavaScript Programming\",\n  \"type\": \"Point\",\n  \"assessment_notes\": \"Proficiency in modern JavaScript, ES6+, async programming\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/capabilities",
+              "host": ["{{baseUrl}}"],
+              "path": ["capabilities"]
+            }
+          }
+        },
+        {
+          "name": "Get All Capabilities",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/capabilities?page=1&limit=10&search=&sort_by=capability_name&sort_order=asc",
+              "host": ["{{baseUrl}}"],
+              "path": ["capabilities"],
+              "query": [
+                {"key": "page", "value": "1"},
+                {"key": "limit", "value": "10"},
+                {"key": "search", "value": ""},
+                {"key": "sort_by", "value": "capability_name"},
+                {"key": "sort_order", "value": "asc"}
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Capability by ID",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/capabilities/capability-uuid",
+              "host": ["{{baseUrl}}"],
+              "path": ["capabilities", "capability-uuid"]
+            }
+          }
+        },
+        {
+          "name": "Update Capability",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"capability_name\": \"Advanced JavaScript Programming\",\n  \"assessment_notes\": \"Expert-level JavaScript including TypeScript, advanced async patterns, performance optimization\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/capabilities/capability-uuid",
+              "host": ["{{baseUrl}}"],
+              "path": ["capabilities", "capability-uuid"]
+            }
+          }
+        },
+        {
+          "name": "Delete Capability",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{baseUrl}}/capabilities/capability-uuid",
+              "host": ["{{baseUrl}}"],
+              "path": ["capabilities", "capability-uuid"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Capability Settings",
+      "item": [
+        {
+          "name": "Create Capability Setting",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"position_id\": \"position-uuid\",\n  \"capability_id\": \"capability-uuid\",\n  \"coefficient\": 0.8\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/capability-settings",
+              "host": ["{{baseUrl}}"],
+              "path": ["capability-settings"]
+            }
+          }
+        },
+        {
+          "name": "Get All Capability Settings",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/capability-settings?page=1&limit=10&position_id=position-uuid&capability_id=capability-uuid",
+              "host": ["{{baseUrl}}"],
+              "path": ["capability-settings"],
+              "query": [
+                {"key": "page", "value": "1"},
+                {"key": "limit", "value": "10"},
+                {"key": "position_id", "value": "position-uuid"},
+                {"key": "capability_id", "value": "capability-uuid"}
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Capability Setting by ID",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/capability-settings/setting-uuid",
+              "host": ["{{baseUrl}}"],
+              "path": ["capability-settings", "setting-uuid"]
+            }
+          }
+        },
+        {
+          "name": "Update Capability Setting",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"coefficient\": 0.9\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/capability-settings/setting-uuid",
+              "host": ["{{baseUrl}}"],
+              "path": ["capability-settings", "setting-uuid"]
+            }
+          }
+        },
+        {
+          "name": "Delete Capability Setting",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{baseUrl}}/capability-settings/setting-uuid",
+              "host": ["{{baseUrl}}"],
+              "path": ["capability-settings", "setting-uuid"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Absence Types",
+      "item": [
+        {
+          "name": "Create Absence Type",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type_name\": \"Annual Leave\",\n  \"description\": \"Paid annual vacation leave\",\n  \"available_days\": 20,\n  \"deduct_from_salary\": false\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/absence-types",
+              "host": ["{{baseUrl}}"],
+              "path": ["absence-types"]
+            }
+          }
+        },
+        {
+          "name": "Get All Absence Types",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/absence-types?page=1&limit=10&search=&sort_by=type_name&sort_order=asc",
+              "host": ["{{baseUrl}}"],
+              "path": ["absence-types"],
+              "query": [
+                {"key": "page", "value": "1"},
+                {"key": "limit", "value": "10"},
+                {"key": "search", "value": ""},
+                {"key": "sort_by", "value": "type_name"},
+                {"key": "sort_order", "value": "asc"}
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Absence Type by ID",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/absence-types/absence-type-uuid",
+              "host": ["{{baseUrl}}"],
+              "path": ["absence-types", "absence-type-uuid"]
+            }
+          }
+        },
+        {
+          "name": "Update Absence Type",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type_name\": \"Annual Vacation Leave\",\n  \"description\": \"Paid annual vacation leave with enhanced benefits\",\n  \"available_days\": 22\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/absence-types/absence-type-uuid",
+              "host": ["{{baseUrl}}"],
+              "path": ["absence-types", "absence-type-uuid"]
+            }
+          }
+        },
+        {
+          "name": "Delete Absence Type",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{baseUrl}}/absence-types/absence-type-uuid",
+              "host": ["{{baseUrl}}"],
+              "path": ["absence-types", "absence-type-uuid"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Offday Settings",
+      "item": [
+        {
+          "name": "Create Offday Setting",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"start_date\": \"2024-12-25\",\n  \"end_date\": \"2024-12-25\",\n  \"description\": \"Christmas Day\",\n  \"can_work_ot\": true,\n  \"ot_factor\": 2.0\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/offday-settings",
+              "host": ["{{baseUrl}}"],
+              "path": ["offday-settings"]
+            }
+          }
+        },
+        {
+          "name": "Get All Offday Settings",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/offday-settings?page=1&limit=10&search=&start_date=2024-01-01&end_date=2024-12-31",
+              "host": ["{{baseUrl}}"],
+              "path": ["offday-settings"],
+              "query": [
+                {"key": "page", "value": "1"},
+                {"key": "limit", "value": "10"},
+                {"key": "search", "value": ""},
+                {"key": "start_date", "value": "2024-01-01"},
+                {"key": "end_date", "value": "2024-12-31"}
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Offday Setting by ID",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/offday-settings/offday-uuid",
+              "host": ["{{baseUrl}}"],
+              "path": ["offday-settings", "offday-uuid"]
+            }
+          }
+        },
+        {
+          "name": "Update Offday Setting",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"description\": \"Christmas Day - National Holiday\",\n  \"ot_factor\": 2.5\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/offday-settings/offday-uuid",
+              "host": ["{{baseUrl}}"],
+              "path": ["offday-settings", "offday-uuid"]
+            }
+          }
+        },
+        {
+          "name": "Delete Offday Setting",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{baseUrl}}/offday-settings/offday-uuid",
+              "host": ["{{baseUrl}}"],
+              "path": ["offday-settings", "offday-uuid"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Project OT Settings",
+      "item": [
+        {
+          "name": "Create Project OT Setting",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"project_id\": \"{{projectId}}\",\n  \"date_at\": \"2024-12-25\",\n  \"ot_factor\": 2.5,\n  \"note\": \"Holiday deployment - Client premium rate applies\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/project-ot-settings",
+              "host": ["{{baseUrl}}"],
+              "path": ["project-ot-settings"]
+            }
+          }
+        },
+        {
+          "name": "Get All Project OT Settings",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/project-ot-settings?page=1&limit=10&search=&project_id={{projectId}}&start_date=2024-01-01&end_date=2024-12-31",
+              "host": ["{{baseUrl}}"],
+              "path": ["project-ot-settings"],
+              "query": [
+                {"key": "page", "value": "1"},
+                {"key": "limit", "value": "10"},
+                {"key": "search", "value": ""},
+                {"key": "project_id", "value": "{{projectId}}"},
+                {"key": "start_date", "value": "2024-01-01"},
+                {"key": "end_date", "value": "2024-12-31"}
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Project OT Stats",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/project-ot-settings/stats",
+              "host": ["{{baseUrl}}"],
+              "path": ["project-ot-settings", "stats"]
+            }
+          }
+        },
+        {
+          "name": "Get Upcoming Project OT Settings",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/project-ot-settings/upcoming?days=30",
+              "host": ["{{baseUrl}}"],
+              "path": ["project-ot-settings", "upcoming"],
+              "query": [
+                {"key": "days", "value": "30"}
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Project OT Settings by Date",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/project-ot-settings/date/2024-12-25",
+              "host": ["{{baseUrl}}"],
+              "path": ["project-ot-settings", "date", "2024-12-25"]
+            }
+          }
+        },
+        {
+          "name": "Get Project OT History",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/project-ot-settings/project/{{projectId}}/history?limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["project-ot-settings", "project", "{{projectId}}", "history"],
+              "query": [
+                {"key": "limit", "value": "10"}
+              ]
+            }
+          }
+        },
+        {
+          "name": "Bulk Create Project OT Settings",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "[\n  {\n    \"project_id\": \"{{projectId}}\",\n    \"date_at\": \"2024-12-25\",\n    \"ot_factor\": 2.5,\n    \"note\": \"Christmas Day deployment\"\n  },\n  {\n    \"project_id\": \"{{projectId}}\",\n    \"date_at\": \"2024-12-31\",\n    \"ot_factor\": 3.0,\n    \"note\": \"New Year's Eve deployment\"\n  }\n]"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/project-ot-settings/bulk",
+              "host": ["{{baseUrl}}"],
+              "path": ["project-ot-settings", "bulk"]
+            }
+          }
+        },
+        {
+          "name": "Get Project OT Setting by ID",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/project-ot-settings/project-ot-uuid",
+              "host": ["{{baseUrl}}"],
+              "path": ["project-ot-settings", "project-ot-uuid"]
+            }
+          }
+        },
+        {
+          "name": "Update Project OT Setting",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ot_factor\": 3.0,\n  \"note\": \"Updated to premium holiday rate\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/project-ot-settings/project-ot-uuid",
+              "host": ["{{baseUrl}}"],
+              "path": ["project-ot-settings", "project-ot-uuid"]
+            }
+          }
+        },
+        {
+          "name": "Delete Project OT Setting",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{baseUrl}}/project-ot-settings/project-ot-uuid",
+              "host": ["{{baseUrl}}"],
+              "path": ["project-ot-settings", "project-ot-uuid"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "User Projects",
+      "item": [
+        {
+          "name": "Assign User to Project",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"user_id\": \"{{userId}}\",\n  \"project_id\": \"{{projectId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/user-projects",
+              "host": ["{{baseUrl}}"],
+              "path": ["user-projects"]
+            }
+          }
+        },
+        {
+          "name": "Bulk Assign Users to Project",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"project_id\": \"{{projectId}}\",\n  \"user_ids\": [\"{{userId}}\", \"user-uuid-2\", \"user-uuid-3\"]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/user-projects/bulk-assign",
+              "host": ["{{baseUrl}}"],
+              "path": ["user-projects", "bulk-assign"]
+            }
+          }
+        },
+        {
+          "name": "Get All User-Project Assignments",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/user-projects?page=1&limit=10&search=&user_id={{userId}}&project_id={{projectId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["user-projects"],
+              "query": [
+                {"key": "page", "value": "1"},
+                {"key": "limit", "value": "10"},
+                {"key": "search", "value": ""},
+                {"key": "user_id", "value": "{{userId}}"},
+                {"key": "project_id", "value": "{{projectId}}"}
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Assignment Statistics",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/user-projects/stats",
+              "host": ["{{baseUrl}}"],
+              "path": ["user-projects", "stats"]
+            }
+          }
+        },
+        {
+          "name": "Get Users by Project",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/user-projects/project/{{projectId}}/users?includeInactive=false",
+              "host": ["{{baseUrl}}"],
+              "path": ["user-projects", "project", "{{projectId}}", "users"],
+              "query": [
+                {"key": "includeInactive", "value": "false"}
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Projects by User",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/user-projects/user/{{userId}}/projects",
+              "host": ["{{baseUrl}}"],
+              "path": ["user-projects", "user", "{{userId}}", "projects"]
+            }
+          }
+        },
+        {
+          "name": "Check User-Project Assignment",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/user-projects/check-assignment/{{userId}}/{{projectId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["user-projects", "check-assignment", "{{userId}}", "{{projectId}}"]
+            }
+          }
+        },
+        {
+          "name": "Get Assignment by ID",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/user-projects/assignment-uuid",
+              "host": ["{{baseUrl}}"],
+              "path": ["user-projects", "assignment-uuid"]
+            }
+          }
+        },
+        {
+          "name": "Update Assignment",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"note\": \"Updated assignment with new responsibilities\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/user-projects/assignment-uuid",
+              "host": ["{{baseUrl}}"],
+              "path": ["user-projects", "assignment-uuid"]
+            }
+          }
+        },
+        {
+          "name": "Remove User from Project",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{baseUrl}}/user-projects/assignment-uuid",
+              "host": ["{{baseUrl}}"],
+              "path": ["user-projects", "assignment-uuid"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Timesheet Complaints",
+      "item": [
+        {
+          "name": "Create Timesheet Complaint",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"timesheet_id\": \"{{timesheetId}}\",\n  \"complaint\": \"The timesheet was rejected without proper feedback. Please review the work done on the authentication module.\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/timesheet-complaints",
+              "host": ["{{baseUrl}}"],
+              "path": ["timesheet-complaints"]
+            }
+          }
+        },
+        {
+          "name": "Get All Timesheet Complaints",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/timesheet-complaints?page=1&limit=10&search=&status=pending&timesheet_id={{timesheetId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["timesheet-complaints"],
+              "query": [
+                {"key": "page", "value": "1"},
+                {"key": "limit", "value": "10"},
+                {"key": "search", "value": ""},
+                {"key": "status", "value": "pending"},
+                {"key": "timesheet_id", "value": "{{timesheetId}}"}
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Complaint by ID",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/timesheet-complaints/complaint-uuid",
+              "host": ["{{baseUrl}}"],
+              "path": ["timesheet-complaints", "complaint-uuid"]
+            }
+          }
+        },
+        {
+          "name": "Update Complaint (Reply)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"admin_reply\": \"Thank you for your complaint. After review, the timesheet has been approved. The authentication module work was well documented.\",\n  \"status\": \"resolved\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/timesheet-complaints/complaint-uuid",
+              "host": ["{{baseUrl}}"],
+              "path": ["timesheet-complaints", "complaint-uuid"]
+            }
+          }
+        },
+        {
+          "name": "Delete Complaint",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{baseUrl}}/timesheet-complaints/complaint-uuid",
+              "host": ["{{baseUrl}}"],
+              "path": ["timesheet-complaints", "complaint-uuid"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Dashboard",
+      "item": [
+        {
+          "name": "Get Dashboard Data",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/dashboard?dashboardType=personal&dateFrom=2024-01-01&dateTo=2024-12-31&includeMetrics=true",
+              "host": ["{{baseUrl}}"],
+              "path": ["dashboard"],
+              "query": [
+                {"key": "dashboardType", "value": "personal"},
+                {"key": "dateFrom", "value": "2024-01-01"},
+                {"key": "dateTo", "value": "2024-12-31"},
+                {"key": "includeMetrics", "value": "true"}
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Manager Dashboard",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/dashboard?dashboardType=manager&dateFrom=2024-01-01&dateTo=2024-12-31&includeMetrics=true",
+              "host": ["{{baseUrl}}"],
+              "path": ["dashboard"],
+              "query": [
+                {"key": "dashboardType", "value": "manager"},
+                {"key": "dateFrom", "value": "2024-01-01"},
+                {"key": "dateTo", "value": "2024-12-31"},
+                {"key": "includeMetrics", "value": "true"}
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Admin Dashboard",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/dashboard?dashboardType=admin&dateFrom=2024-01-01&dateTo=2024-12-31&includeMetrics=true",
+              "host": ["{{baseUrl}}"],
+              "path": ["dashboard"],
+              "query": [
+                {"key": "dashboardType", "value": "admin"},
+                {"key": "dateFrom", "value": "2024-01-01"},
+                {"key": "dateTo", "value": "2024-12-31"},
+                {"key": "includeMetrics", "value": "true"}
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Audit Logs",
+      "item": [
+        {
+          "name": "Create Audit Log",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"table_name\": \"users\",\n  \"action\": \"UPDATE\",\n  \"record_id\": \"{{userId}}\",\n  \"user_id\": \"{{userId}}\",\n  \"details\": \"Updated user profile information\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/audit-logs",
+              "host": ["{{baseUrl}}"],
+              "path": ["audit-logs"]
+            }
+          }
+        },
+        {
+          "name": "Get All Audit Logs",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/audit-logs",
+              "host": ["{{baseUrl}}"],
+              "path": ["audit-logs"]
+            }
+          }
+        },
+        {
+          "name": "Get Audit Log by ID",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/audit-logs/audit-log-id",
+              "host": ["{{baseUrl}}"],
+              "path": ["audit-logs", "audit-log-id"]
+            }
+          }
+        },
+        {
+          "name": "Delete Audit Log",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{baseUrl}}/audit-logs/audit-log-id",
+              "host": ["{{baseUrl}}"],
+              "path": ["audit-logs", "audit-log-id"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/health",
+              "host": ["{{baseUrl}}"],
+              "path": ["health"]
+            }
+          }
+        },
+        {
+          "name": "Database Health Check",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/health/database",
+              "host": ["{{baseUrl}}"],
+              "path": ["health", "database"]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Auto-set Authorization header if token exists",
+          "const token = pm.collectionVariables.get('authToken');",
+          "if (token && token.length > 0) {",
+          "    pm.request.headers.add({",
+          "        key: 'Authorization',",
+          "        value: `Bearer ${token}`",
+          "    });",
+          "}"
+        ]
+      }
+    }
+  ]
+}
+

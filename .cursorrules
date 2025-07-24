@@ -186,3 +186,532 @@ async findOne(@Param('id') id: string) {
 - [ ] Consistent response format using ApiResponse/PaginatedResponse
 
 Remember: **Code that works reliably is better than code that's perfectly optimized but breaks in edge cases.**
+
+# Timesheet Management Backend - Cursor Rules
+
+## 🎯 **Project Context**
+
+This is a comprehensive **NestJS backend** for a timesheet management system with enterprise-grade features including:
+
+- **JWT Authentication** with Google OAuth integration
+- **Role-based Access Control** with enhanced permissions
+- **Audit Logging** for compliance and security tracking
+- **Prisma ORM** with PostgreSQL database
+- **Zod Validation** for request/response schemas
+- **Swagger Documentation** for API documentation
+- **Modular Architecture** with domain-driven design
+
+## 🏗️ **Architecture Patterns**
+
+### **Module Structure**
+
+```
+src/
+├── modules/
+│   ├── auth/                  # Authentication & authorization
+│   ├── users/                 # User management
+│   ├── timesheets/           # Timesheet tracking
+│   ├── projects/             # Project management
+│   ├── requests/             # Leave/remote requests
+│   ├── working-times/        # Working schedule
+│   ├── dashboard/            # Analytics & reporting
+│   └── audit-logs/           # Audit & compliance
+├── common/                   # Shared utilities
+├── prisma/                   # Database layer
+└── config/                   # Application configuration
+```
+
+### **Role-Based Access Control**
+
+- **ADMIN**: Full system access
+- **HR**: User management, reports, approvals
+- **PM**: Project management, team oversight
+- **USER**: Personal data, timesheets, requests
+
+## 📋 **Development Guidelines**
+
+### **1. Controller Development**
+
+**ALWAYS follow this pattern:**
+
+```typescript
+@Controller('resource-name')
+@UseGuards(JwtAuthGuard, EnhancedRolesGuard)
+@ApiTags('Resource Name')
+@ApiBearerAuth('JWT-auth')
+export class ResourceController {
+  constructor(private readonly resourceService: ResourceService) {}
+
+  @Post()
+  @Roles('ADMIN', 'HR') // Specify required roles
+  @AuditLog(createResourceAuditConfig()) // Add audit logging
+  @ApiOperation({
+    summary: 'Create resource',
+    description: 'Detailed description with business rules and use cases',
+  })
+  async create(
+    @Body() createDto: CreateResourceDto,
+    @GetUser('id') userId: string,
+  ) {
+    const result = await this.resourceService.create(userId, createDto);
+    return new ApiResponse(result.data, result.message);
+  }
+}
+```
+
+**Controller Best Practices:**
+
+- Use `@UseGuards(JwtAuthGuard, EnhancedRolesGuard)` for protected routes
+- Always specify `@Roles()` decorator for role-based access
+- Add `@AuditLog()` decorator for trackable actions
+- Use `@GetUser()` decorator to get authenticated user
+- Return standardized `ApiResponse` or `PaginatedResponse`
+- Include comprehensive Swagger documentation
+
+### **2. Service Development**
+
+**Service Pattern:**
+
+```typescript
+@Injectable()
+export class ResourceService {
+  constructor(private prisma: PrismaService) {}
+
+  async create(userId: string, createDto: CreateResourceDto) {
+    // 1. Validate business rules
+    await this.validateBusinessRules(createDto);
+
+    // 2. Perform database operation
+    const resource = await this.prisma.resource.create({
+      data: {
+        ...createDto,
+        user_id: userId,
+      },
+      include: {
+        user: { select: { id: true, name: true, surname: true } },
+        // Include related data as needed
+      },
+    });
+
+    // 3. Return structured response
+    return {
+      data: resource,
+      message: 'Resource created successfully',
+    };
+  }
+
+  private async validateBusinessRules(data: CreateResourceDto) {
+    // Implement business logic validation
+    // Throw appropriate exceptions for violations
+  }
+}
+```
+
+**Service Best Practices:**
+
+- Always validate business rules before database operations
+- Use Prisma's `include` to fetch related data efficiently
+- Return structured objects with `data` and `message` properties
+- Handle errors gracefully with appropriate HTTP status codes
+- Use private methods for business logic validation
+
+### **3. DTO Development**
+
+**Create comprehensive DTOs with Zod validation:**
+
+```typescript
+import { z } from 'zod';
+import { createZodDto } from '@anatine/zod-nestjs';
+
+export const createResourceSchema = z.object({
+  name: z
+    .string()
+    .min(2, 'Name must be at least 2 characters')
+    .max(100, 'Name must not exceed 100 characters')
+    .trim(),
+  description: z
+    .string()
+    .max(1000, 'Description must not exceed 1000 characters')
+    .optional(),
+  status: z.enum(['ACTIVE', 'INACTIVE']).default('ACTIVE'),
+  // Add more fields as needed
+});
+
+export class CreateResourceDto extends createZodDto(createResourceSchema) {
+  @ApiProperty({
+    description: 'Resource name',
+    example: 'Project Alpha',
+    minLength: 2,
+    maxLength: 100,
+  })
+  name: string;
+
+  @ApiProperty({
+    description: 'Resource description',
+    example: 'Description of the resource',
+    maxLength: 1000,
+    required: false,
+  })
+  description?: string;
+}
+```
+
+**DTO Best Practices:**
+
+- Use Zod for runtime validation
+- Add comprehensive `@ApiProperty` decorators
+- Include validation messages and constraints
+- Use `createZodDto` for automatic Swagger integration
+- Create separate DTOs for create, update, and query operations
+
+### **4. Authentication & Authorization**
+
+**Enhanced Roles Guard Usage:**
+
+```typescript
+@Get('sensitive-data')
+@Roles('ADMIN', 'HR')
+@RoleOptions({
+  allowSelfAccess: true,
+  paramName: 'userId',
+  message: 'You can only access your own data',
+  enableLogging: process.env.NODE_ENV === 'development'
+})
+async getData(@Param('userId') userId: string, @GetUser() user: User) {
+  // Implementation
+}
+```
+
+**Authentication Best Practices:**
+
+- Use `@Roles()` decorator to specify required roles
+- Use `@RoleOptions()` for self-access permissions
+- Enable logging in development for debugging
+- Use `@GetUser()` decorator to access authenticated user
+- Implement proper error messages for unauthorized access
+
+### **5. Audit Logging**
+
+**Implement comprehensive audit logging:**
+
+```typescript
+@AuditLog({
+  tableName: 'timesheets',
+  action: 'CREATE',
+  getRecordId: (result: any) => result.data?.id,
+  getDetails: (result: any, request: any) => ({
+    timesheet_date: result.data?.date,
+    working_hours: result.data?.working_time,
+    project_id: result.data?.project_id,
+    user_id: result.data?.user_id
+  })
+})
+```
+
+**Audit Logging Best Practices:**
+
+- Add audit logs for all create, update, delete operations
+- Include relevant details for compliance tracking
+- Use dynamic functions for record ID and details
+- Follow consistent naming conventions
+- Include business-relevant information in details
+
+### **6. Database Operations**
+
+**Prisma Best Practices:**
+
+```typescript
+// Use transactions for multiple operations
+await this.prisma.$transaction(async (prisma) => {
+  const timesheet = await prisma.timesheet.create({ data: timesheetData });
+  await prisma.auditLog.create({ data: auditData });
+  return timesheet;
+});
+
+// Use proper includes for related data
+const timesheets = await this.prisma.timesheet.findMany({
+  include: {
+    user: { select: { id: true, name: true, surname: true } },
+    project: { select: { id: true, project_name: true } },
+    task: { select: { id: true, task_name: true } },
+  },
+  where: filterConditions,
+  orderBy: { created_at: 'desc' },
+  skip: (page - 1) * limit,
+  take: limit,
+});
+
+// Handle pagination properly
+const total = await this.prisma.timesheet.count({ where: filterConditions });
+const pagination = {
+  page,
+  limit,
+  total,
+  totalPages: Math.ceil(total / limit),
+};
+```
+
+### **7. Error Handling**
+
+**Implement comprehensive error handling:**
+
+```typescript
+try {
+  // Database operation
+} catch (error) {
+  if (error.code === 'P2002') {
+    throw new ConflictException('Resource already exists');
+  }
+  if (error.code === 'P2025') {
+    throw new NotFoundException('Resource not found');
+  }
+  throw new InternalServerErrorException('An unexpected error occurred');
+}
+```
+
+**Error Handling Best Practices:**
+
+- Use appropriate HTTP status codes
+- Provide meaningful error messages
+- Log errors for debugging
+- Handle Prisma-specific errors
+- Don't expose sensitive information in error messages
+
+### **8. Swagger Documentation**
+
+**Comprehensive API documentation:**
+
+```typescript
+@ApiOperation({
+  summary: 'Create a new timesheet entry',
+  description: `
+    Creates a new timesheet entry for the authenticated user.
+
+    **Business Rules:**
+    - Users can only create timesheets for themselves
+    - Working time cannot exceed 24 hours per day
+    - Date must be in YYYY-MM-DD format
+    - Project and task are optional for general work
+
+    **Validation:**
+    - Date format validation
+    - Working time range validation
+    - Project/task existence validation
+  `
+})
+@ApiResponse({
+  status: 201,
+  description: 'Timesheet created successfully',
+  type: ApiResponse<Timesheet>
+})
+@ApiBadRequestResponse({
+  description: 'Validation errors',
+  type: ValidationErrorResponse
+})
+```
+
+### **9. Query Operations**
+
+**Implement comprehensive filtering and pagination:**
+
+```typescript
+async findAll(userId: string, query: QueryTimesheetsDto, userRole: string) {
+  const { page = 1, limit = 10, status, type, start_date, end_date } = query
+
+  const where: Prisma.TimesheetWhereInput = {
+    // Apply role-based filtering
+    ...(userRole === 'USER' && { user_id: userId }),
+    ...(status && { status }),
+    ...(type && { type }),
+    ...(start_date && end_date && {
+      date: {
+        gte: new Date(start_date),
+        lte: new Date(end_date)
+      }
+    })
+  }
+
+  const [data, total] = await Promise.all([
+    this.prisma.timesheet.findMany({
+      where,
+      include: {
+        user: { select: { id: true, name: true, surname: true } },
+        project: { select: { id: true, project_name: true } },
+        task: { select: { id: true, task_name: true } }
+      },
+      orderBy: { date: 'desc' },
+      skip: (page - 1) * limit,
+      take: limit
+    }),
+    this.prisma.timesheet.count({ where })
+  ])
+
+  return {
+    data,
+    pagination: {
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit)
+    }
+  }
+}
+```
+
+### **10. Environment Configuration**
+
+**Use type-safe configuration:**
+
+```typescript
+// config/database.config.ts
+export default registerAs('database', () => ({
+  url: process.env.DATABASE_URL,
+  host: process.env.DB_HOST,
+  port: parseInt(process.env.DB_PORT, 10) || 5432,
+  username: process.env.DB_USERNAME,
+  password: process.env.DB_PASSWORD,
+  database: process.env.DB_DATABASE,
+}));
+
+// config/jwt.config.ts
+export default registerAs('jwt', () => ({
+  secret: process.env.JWT_SECRET,
+  expiresIn: process.env.JWT_EXPIRES_IN || '1d',
+}));
+```
+
+## 🛡️ **Security Best Practices**
+
+### **Authentication Security**
+
+- Always use `@UseGuards(JwtAuthGuard, EnhancedRolesGuard)` for protected routes
+- Implement proper token validation and refresh
+- Use strong JWT secrets and appropriate expiration times
+- Log authentication attempts for security monitoring
+
+### **Authorization Security**
+
+- Implement role-based access control at the controller level
+- Use self-access permissions for user-specific data
+- Validate user permissions at the service level
+- Implement proper error handling for unauthorized access
+
+### **Data Validation**
+
+- Use Zod schemas for runtime validation
+- Validate all input data at the DTO level
+- Implement business rule validation in services
+- Sanitize input data to prevent injection attacks
+
+## 📊 **Performance Optimization**
+
+### **Database Optimization**
+
+- Use proper indexes on frequently queried fields
+- Implement efficient pagination with skip/take
+- Use select and include strategically
+- Implement connection pooling for database connections
+
+### **Caching Strategy**
+
+- Implement Redis caching for frequently accessed data
+- Use database-level caching for static data
+- Implement proper cache invalidation strategies
+- Monitor cache hit rates and performance
+
+## 🧪 **Testing Guidelines**
+
+### **Unit Testing**
+
+- Test all service methods with proper mocking
+- Test controller endpoints with authentication
+- Test DTO validation with various inputs
+- Test error handling scenarios
+
+### **Integration Testing**
+
+- Test complete request/response cycles
+- Test database interactions with test database
+- Test authentication and authorization flows
+- Test audit logging functionality
+
+## 🔄 **Development Workflow**
+
+### **Code Organization**
+
+- Follow the modular architecture pattern
+- Keep controllers thin and services focused
+- Use dependency injection consistently
+- Implement proper error boundaries
+
+### **Documentation**
+
+- Update Swagger documentation for all endpoints
+- Document business rules and validation logic
+- Include usage examples in API documentation
+- Maintain up-to-date README files
+
+## 📝 **Naming Conventions**
+
+### **Files and Directories**
+
+- Use kebab-case for file names: `user-management.service.ts`
+- Use PascalCase for class names: `UserManagementService`
+- Use camelCase for method names: `findUserById`
+- Use UPPER_SNAKE_CASE for constants: `MAX_RETRY_ATTEMPTS`
+
+### **Database Conventions**
+
+- Use snake_case for table and column names
+- Use descriptive foreign key names: `user_id`, `project_id`
+- Use consistent naming for timestamps: `created_at`, `updated_at`
+- Use plural names for tables: `users`, `timesheets`
+
+## 🚀 **Deployment Considerations**
+
+### **Environment Variables**
+
+- Use `.env` files for configuration
+- Validate environment variables at startup
+- Use different configurations for different environments
+- Keep sensitive data in environment variables
+
+### **Production Readiness**
+
+- Implement proper health checks
+- Set up monitoring and alerting
+- Configure proper logging levels
+- Implement graceful shutdown handling
+
+## 🎯 **Code Quality Standards**
+
+### **TypeScript Usage**
+
+- Use strict TypeScript configuration
+- Avoid `any` type usage
+- Implement proper type definitions
+- Use interfaces for data structures
+
+### **Error Handling**
+
+- Use appropriate HTTP status codes
+- Implement global exception filters
+- Log errors with proper context
+- Provide meaningful error messages
+
+### **Code Style**
+
+- Follow consistent code formatting
+- Use meaningful variable and function names
+- Implement proper code comments
+- Keep functions focused and small
+
+Remember to always think like a senior NestJS developer focused on:
+
+- **Security**: Implement proper authentication and authorization
+- **Performance**: Optimize database queries and implement caching
+- **Maintainability**: Write clean, modular, and testable code
+- **Documentation**: Provide comprehensive API documentation
+- **Error Handling**: Implement robust error handling and logging
+- **Business Logic**: Focus on business rules and validation
+- **Scalability**: Design for growth and maintainability

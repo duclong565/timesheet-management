@@ -47,6 +47,8 @@ model User {
   user_projects     UserProject[]
   timesheets        Timesheet[]
   edited_timesheets Timesheet[]     @relation("EditedBy")
+  profile_changes   ProfileChangeRequest[]
+  reviewedProfileChanges ProfileChangeRequest[] @relation("ReviewedBy")
 
   @@map("users")
 }
@@ -346,4 +348,23 @@ model AuditLog {
   created_at     DateTime  @default(now())
 
   @@map("audit_logs")
+}
+
+model ProfileChangeRequest {
+  id             String   @id @default(uuid())
+  user           User     @relation(fields: [userId], references: [id])
+  userId         String
+  requestedData  Json
+  status         ProfileChangeRequestStatus @default(PENDING)
+  reviewedBy     User?    @relation("ReviewedBy", fields: [reviewedById], references: [id])
+  reviewedById   String?
+  reviewedAt     DateTime?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+enum ProfileChangeRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
 }
