@@ -390,7 +390,7 @@ export class UsersService {
     return this.prisma.profileChangeRequest.create({
       data: {
         userId,
-        requestedData: dto,
+        requestedData: JSON.parse(JSON.stringify(dto)), // Convert DTO to plain object for JSON storage
         status: 'PENDING',
       },
     });
@@ -428,9 +428,10 @@ export class UsersService {
     let updatedRequest;
     if (dto.action === 'APPROVE') {
       // Update the user profile with requestedData
+      const updateData = request.requestedData as Record<string, any>; // Cast JSON to object
       await this.prisma.user.update({
         where: { id: request.userId },
-        data: request.requestedData,
+        data: updateData,
       });
       updatedRequest = await this.prisma.profileChangeRequest.update({
         where: { id: requestId },

@@ -49,6 +49,10 @@ model User {
   edited_timesheets Timesheet[]     @relation("EditedBy")
   profile_changes   ProfileChangeRequest[]
   reviewedProfileChanges ProfileChangeRequest[] @relation("ReviewedBy")
+  
+  // Week submission relations
+  week_submissions          WeekSubmission[]
+  approved_week_submissions WeekSubmission[] @relation("WeekApprover")
 
   @@map("users")
 }
@@ -361,6 +365,25 @@ model ProfileChangeRequest {
   reviewedAt     DateTime?
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
+}
+
+model WeekSubmission {
+  id              String   @id @default(uuid())
+  user            User     @relation(fields: [user_id], references: [id])
+  user_id         String
+  week_start_date DateTime @db.Date // Monday of the submitted week
+  week_end_date   DateTime @db.Date // Sunday of the submitted week
+  status          String   @default("SUBMITTED") // SUBMITTED, APPROVED, REJECTED
+  submitted_at    DateTime @default(now())
+  approved_by     User?    @relation("WeekApprover", fields: [approved_by_id], references: [id])
+  approved_by_id  String?
+  approved_at     DateTime?
+  rejection_reason String? @db.Text
+  created_at      DateTime @default(now())
+  updated_at      DateTime @default(now()) @updatedAt
+
+  @@unique([user_id, week_start_date]) // Prevent duplicate submissions for same week
+  @@map("week_submissions")
 }
 
 enum ProfileChangeRequestStatus {

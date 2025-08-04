@@ -10,6 +10,12 @@ import { CreateTimesheetDto } from './dto/create-timesheet.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { ResponseTimesheetDto } from './dto/response-timesheet.dto';
 import { QueryTimesheetsDto } from './dto/query-timesheet.dto';
+import { SubmitWeekDto } from './dto/submit-week.dto';
+import {
+  WeekSubmissionDto,
+  WeekSubmissionListDto,
+  ApproveWeekSubmissionDto,
+} from './dto/week-submission-response.dto';
 
 @Injectable()
 export class TimesheetsService {
@@ -431,5 +437,428 @@ export class TimesheetsService {
       }
       throw new InternalServerErrorException('Failed to delete timesheet');
     }
+  }
+
+  // Week Submission Methods
+
+  async submitWeekForApproval(
+    userId: string,
+    submitWeekDto: SubmitWeekDto,
+  ): Promise<WeekSubmissionDto> {
+    try {
+      const { week_start_date } = submitWeekDto;
+      const startDate = new Date(week_start_date);
+      const endDate = new Date(startDate);
+      endDate.setDate(startDate.getDate() + 6); // Sunday = Monday + 6 days
+
+      // Validate user exists and is active
+      const user = await this.prismaService.user.findUnique({
+        where: { id: userId },
+        include: { role: true },
+      });
+      if (!user || !user.is_active) {
+        throw new BadRequestException('User not found or inactive');
+      }
+
+      // Check if week already submitted
+      const existingSubmission =
+        await this.prismaService.weekSubmission.findUnique({
+          where: {
+            user_id_week_start_date: {
+              user_id: userId,
+              week_start_date: startDate,
+            },
+          },
+        });
+      if (existingSubmission) {
+        throw new BadRequestException('Week already submitted for approval');
+      }
+
+      // Check if user has any submitted week that blocks editing
+      const hasSubmittedWeek =
+        await this.prismaService.weekSubmission.findFirst({
+          where: {
+            user_id: userId,
+            week_start_date: {
+              lte: endDate,
+            },
+            week_end_date: {
+              gte: startDate,
+            },
+            status: { in: ['SUBMITTED', 'APPROVED'] },
+          },
+        });
+      if (hasSubmittedWeek) {
+        throw new BadRequestException(
+          'Cannot submit overlapping weeks that are already submitted or approved',
+        );
+      }
+
+      // Create week submission
+      const weekSubmission = await this.prismaService.weekSubmission.create({
+        data: {
+          user_id: userId,
+          week_start_date: startDate,
+          week_end_date: endDate,
+          status: 'SUBMITTED',
+        },
+        include: {
+          user: {
+            select: {
+              id: true,
+              name: true,
+              surname: true,
+              email: true,
+            },
+          },
+        },
+      });
+
+      return {
+        id: weekSubmission.id,
+        user_id: weekSubmission.user_id,
+        week_start_date: weekSubmission.week_start_date.toISOString(),
+        week_end_date: weekSubmission.week_end_date.toISOString(),
+        status: weekSubmission.status as 'SUBMITTED' | 'APPROVED' | 'REJECTED',
+        submitted_at: weekSubmission.submitted_at.toISOString(),
+        approved_by_id: weekSubmission.approved_by_id,
+        approved_at: weekSubmission.approved_at?.toISOString() || null,
+        rejection_reason: weekSubmission.rejection_reason,
+        created_at: weekSubmission.created_at.toISOString(),
+        updated_at: weekSubmission.updated_at.toISOString(),
+        user: weekSubmission.user,
+      };
+    } catch (error) {
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
+      throw new InternalServerErrorException(
+        'Failed to submit week for approval',
+      );
+    }
+  }
+
+  async getWeekSubmissions(userId: string): Promise<WeekSubmissionListDto> {
+    try {
+      const submissions = await this.prismaService.weekSubmission.findMany({
+        where: { user_id: userId },
+        include: {
+          user: {
+            select: {
+              id: true,
+              name: true,
+              surname: true,
+              email: true,
+            },
+          },
+          approved_by: {
+            select: {
+              id: true,
+              name: true,
+              surname: true,
+              email: true,
+            },
+          },
+        },
+        orderBy: { week_start_date: 'desc' },
+      });
+
+      return submissions.map((submission) => ({
+        id: submission.id,
+        user_id: submission.user_id,
+        week_start_date: submission.week_start_date.toISOString(),
+        week_end_date: submission.week_end_date.toISOString(),
+        status: submission.status as 'SUBMITTED' | 'APPROVED' | 'REJECTED',
+        submitted_at: submission.submitted_at.toISOString(),
+        approved_by_id: submission.approved_by_id,
+        approved_at: submission.approved_at?.toISOString() || null,
+        rejection_reason: submission.rejection_reason,
+        created_at: submission.created_at.toISOString(),
+        updated_at: submission.updated_at.toISOString(),
+        user: submission.user,
+        approved_by: submission.approved_by,
+      }));
+    } catch (error) {
+      throw new InternalServerErrorException(
+        'Failed to retrieve week submissions',
+      );
+    }
+  }
+
+  async approveWeekSubmission(
+    approverId: string,
+    approveDto: ApproveWeekSubmissionDto,
+  ): Promise<WeekSubmissionDto> {
+    try {
+      const { submission_id, action, rejection_reason } = approveDto;
+
+      // Validate approver exists and has proper role
+      const approver = await this.prismaService.user.findUnique({
+        where: { id: approverId },
+        include: {
+          role: true,
+          user_projects: {
+            include: {
+              project: true,
+            },
+          },
+        },
+      });
+      if (!approver || !approver.is_active) {
+        throw new BadRequestException('Approver not found or inactive');
+      }
+      if (
+        !approver.role ||
+        !['HR', 'PM', 'ADMIN'].includes(approver.role.role_name)
+      ) {
+        throw new BadRequestException(
+          'Unauthorized to approve week submissions',
+        );
+      }
+
+      // Get the submission with user's timesheets for the week
+      const submission = await this.prismaService.weekSubmission.findUnique({
+        where: { id: submission_id },
+        include: {
+          user: {
+            include: {
+              timesheets: {
+                where: {
+                  date: {
+                    gte: new Date(),
+                    lte: new Date(),
+                  },
+                },
+                include: {
+                  project: true,
+                },
+              },
+            },
+          },
+        },
+      });
+      if (!submission) {
+        throw new NotFoundException('Week submission not found');
+      }
+      if (submission.status !== 'SUBMITTED') {
+        throw new BadRequestException('Week submission already processed');
+      }
+
+      // Role-based approval authority validation
+      const userTimesheets = await this.prismaService.timesheet.findMany({
+        where: {
+          user_id: submission.user_id,
+          date: {
+            gte: submission.week_start_date,
+            lte: submission.week_end_date,
+          },
+        },
+        include: { project: true },
+      });
+
+      // Check approval authority based on business rules
+      if (approver.role.role_name === 'PM') {
+        // PM can only approve project-based submissions
+        const approverProjectIds = approver.user_projects.map(
+          (up) => up.project_id,
+        );
+        const hasPermission = userTimesheets.some(
+          (ts) => ts.project_id && approverProjectIds.includes(ts.project_id),
+        );
+        if (!hasPermission) {
+          throw new ForbiddenException(
+            'PM can only approve submissions for their assigned projects',
+          );
+        }
+      } else if (approver.role.role_name === 'HR') {
+        // HR can approve company activities (non-project submissions)
+        const hasProjectWork = userTimesheets.some(
+          (ts) => ts.project_id !== null,
+        );
+        if (hasProjectWork) {
+          throw new ForbiddenException(
+            'HR can only approve non-project company activities',
+          );
+        }
+      }
+      // ADMIN can approve all submissions (no additional validation needed)
+
+      // Update submission
+      const updatedSubmission = await this.prismaService.weekSubmission.update({
+        where: { id: submission_id },
+        data: {
+          status: action === 'APPROVE' ? 'APPROVED' : 'REJECTED',
+          approved_by_id: approverId,
+          approved_at: new Date(),
+          rejection_reason: action === 'REJECT' ? rejection_reason : null,
+        },
+        include: {
+          user: {
+            select: {
+              id: true,
+              name: true,
+              surname: true,
+              email: true,
+            },
+          },
+          approved_by: {
+            select: {
+              id: true,
+              name: true,
+              surname: true,
+              email: true,
+            },
+          },
+        },
+      });
+
+      return {
+        id: updatedSubmission.id,
+        user_id: updatedSubmission.user_id,
+        week_start_date: updatedSubmission.week_start_date.toISOString(),
+        week_end_date: updatedSubmission.week_end_date.toISOString(),
+        status: updatedSubmission.status as
+          | 'SUBMITTED'
+          | 'APPROVED'
+          | 'REJECTED',
+        submitted_at: updatedSubmission.submitted_at.toISOString(),
+        approved_by_id: updatedSubmission.approved_by_id,
+        approved_at: updatedSubmission.approved_at?.toISOString() || null,
+        rejection_reason: updatedSubmission.rejection_reason,
+        created_at: updatedSubmission.created_at.toISOString(),
+        updated_at: updatedSubmission.updated_at.toISOString(),
+        user: updatedSubmission.user,
+        approved_by: updatedSubmission.approved_by,
+      };
+    } catch (error) {
+      if (
+        error instanceof BadRequestException ||
+        error instanceof NotFoundException ||
+        error instanceof ForbiddenException
+      ) {
+        throw error;
+      }
+      throw new InternalServerErrorException(
+        'Failed to approve week submission',
+      );
+    }
+  }
+
+  async getPendingApprovals(
+    approverId: string,
+  ): Promise<WeekSubmissionListDto> {
+    try {
+      // Validate approver role
+      const approver = await this.prismaService.user.findUnique({
+        where: { id: approverId },
+        include: {
+          role: true,
+          user_projects: {
+            include: {
+              project: true,
+            },
+          },
+        },
+      });
+      if (!approver || !approver.is_active) {
+        throw new BadRequestException('Approver not found or inactive');
+      }
+      if (
+        !approver.role ||
+        !['HR', 'PM', 'ADMIN'].includes(approver.role.role_name)
+      ) {
+        throw new BadRequestException('Unauthorized to view pending approvals');
+      }
+
+      let whereCondition: any = {
+        status: 'SUBMITTED',
+      };
+
+      // Role-based filtering
+      if (approver.role.role_name === 'PM') {
+        // PM sees only submissions for their projects
+        const approverProjectIds = approver.user_projects.map(
+          (up) => up.project_id,
+        );
+        whereCondition.user = {
+          timesheets: {
+            some: {
+              project_id: { in: approverProjectIds },
+              date: {
+                gte: new Date(), // We'll need to adjust this query
+              },
+            },
+          },
+        };
+      } else if (approver.role.role_name === 'HR') {
+        // HR sees only non-project submissions
+        whereCondition.user = {
+          timesheets: {
+            none: {
+              project_id: { not: null },
+              date: {
+                gte: new Date(), // We'll need to adjust this query
+              },
+            },
+          },
+        };
+      }
+      // ADMIN sees all submissions (no additional filtering)
+
+      const submissions = await this.prismaService.weekSubmission.findMany({
+        where: whereCondition,
+        include: {
+          user: {
+            select: {
+              id: true,
+              name: true,
+              surname: true,
+              email: true,
+            },
+          },
+        },
+        orderBy: { submitted_at: 'asc' },
+      });
+
+      return submissions.map((submission) => ({
+        id: submission.id,
+        user_id: submission.user_id,
+        week_start_date: submission.week_start_date.toISOString(),
+        week_end_date: submission.week_end_date.toISOString(),
+        status: submission.status as 'SUBMITTED' | 'APPROVED' | 'REJECTED',
+        submitted_at: submission.submitted_at.toISOString(),
+        approved_by_id: submission.approved_by_id,
+        approved_at: submission.approved_at?.toISOString() || null,
+        rejection_reason: submission.rejection_reason,
+        created_at: submission.created_at.toISOString(),
+        updated_at: submission.updated_at.toISOString(),
+        user: submission.user,
+      }));
+    } catch (error) {
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
+      throw new InternalServerErrorException(
+        'Failed to retrieve pending approvals',
+      );
+    }
+  }
+
+  async isWeekSubmitted(
+    userId: string,
+    weekStartDate: string,
+  ): Promise<boolean> {
+    const startDate = new Date(weekStartDate);
+    const submission = await this.prismaService.weekSubmission.findUnique({
+      where: {
+        user_id_week_start_date: {
+          user_id: userId,
+          week_start_date: startDate,
+        },
+      },
+    });
+    return submission
+      ? submission.status === 'SUBMITTED' || submission.status === 'APPROVED'
+      : false;
   }
 }

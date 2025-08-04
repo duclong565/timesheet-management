@@ -56,8 +56,6 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
   }
 
   handleRequest(err, user, info, context) {
-    console.log(`[JwtAuthGuard] Handle request called`);
-    
     if (err) {
       console.log(`[JwtAuthGuard] Error during authentication:`, err);
       throw err;
@@ -77,7 +75,6 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
       throw new UnauthorizedException('Authentication required');
     }
     
-    console.log(`[JwtAuthGuard] User authenticated successfully: ${user.username} (${user.id})`);
     return user;
   }
 }
