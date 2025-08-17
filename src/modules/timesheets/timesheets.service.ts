@@ -930,15 +930,15 @@ export class TimesheetsService {
     if (project_id !== undefined) updateData.project_id = project_id;
     if (task_id !== undefined) updateData.task_id = task_id;
 
-    // Only update date if it's provided, and convert to proper DateTime format
+    // Only update date if it's provided, and normalize to UTC start of day
     if (date) {
-      // Convert to start of day in ISO format to maintain date consistency
+      // Ensure date stays the same regardless of server timezone
       const dateObj = new Date(date);
-      dateObj.setHours(0, 0, 0, 0); // Set to start of day
-      updateData.date = dateObj.toISOString();
+      dateObj.setUTCHours(0, 0, 0, 0); // Set to start of day in UTC
+      updateData.date = dateObj; // Pass Date object directly to Prisma
       console.log('📅 Date processing:', {
         originalDate: date,
-        convertedDate: updateData.date,
+        normalizedDate: dateObj.toISOString(),
       });
     }
 
