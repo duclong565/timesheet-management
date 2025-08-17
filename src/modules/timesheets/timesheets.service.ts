@@ -878,13 +878,18 @@ export class TimesheetsService {
         task: { select: { id: true, task_name: true } },
       },
     });
-    console.log('📝 Found entry before update:', entry ? {
-      id: entry.id,
-      date: entry.date,
-      user_active: entry.user?.is_active,
-      project_exists: !!entry.project,
-      task_exists: !!entry.task,
-    } : 'NOT FOUND');
+    console.log(
+      '📝 Found entry before update:',
+      entry
+        ? {
+            id: entry.id,
+            date: entry.date,
+            user_active: entry.user?.is_active,
+            project_exists: !!entry.project,
+            task_exists: !!entry.task,
+          }
+        : 'NOT FOUND',
+    );
 
     if (!entry) {
       throw new NotFoundException(`Timesheet entry with ID ${id} not found`);
@@ -894,9 +899,12 @@ export class TimesheetsService {
     if (project_id) {
       const projectExists = await this.prismaService.project.findUnique({
         where: { id: project_id },
-        select: { id: true, project_name: true }
+        select: { id: true, project_name: true },
       });
-      console.log('🏗️ Project validation:', projectExists ? 'EXISTS' : 'NOT FOUND');
+      console.log(
+        '🏗️ Project validation:',
+        projectExists ? 'EXISTS' : 'NOT FOUND',
+      );
       if (!projectExists) {
         throw new NotFoundException(`Project with ID ${project_id} not found`);
       }
@@ -905,7 +913,7 @@ export class TimesheetsService {
     if (task_id) {
       const taskExists = await this.prismaService.task.findUnique({
         where: { id: task_id },
-        select: { id: true, task_name: true }
+        select: { id: true, task_name: true },
       });
       console.log('📋 Task validation:', taskExists ? 'EXISTS' : 'NOT FOUND');
       if (!taskExists) {
@@ -937,66 +945,73 @@ export class TimesheetsService {
     console.log('🚀 About to update with data:', updateData);
 
     // Use a transaction to ensure data consistency
-    const updatedEntry = await this.prismaService.$transaction(async (prisma) => {
-      // Double-check entry exists in transaction
-      const existsInTransaction = await prisma.timesheet.findUnique({
-        where: { id },
-        select: { id: true, date: true, user_id: true }
-      });
-      
-      if (!existsInTransaction) {
-        throw new NotFoundException(`Timesheet entry with ID ${id} not found in transaction`);
-      }
-      
-      console.log('🔄 Entry exists in transaction:', existsInTransaction);
-
-      // Perform the update
-      try {
-        const result = await prisma.timesheet.update({
+    const updatedEntry = await this.prismaService.$transaction(
+      async (prisma) => {
+        // Double-check entry exists in transaction
+        const existsInTransaction = await prisma.timesheet.findUnique({
           where: { id },
-          data: updateData,
-          include: {
-            user: {
-              select: {
-                id: true,
-                username: true,
-                name: true,
-                surname: true,
-                position: {
-                  select: { id: true, position_name: true },
+          select: { id: true, date: true, user_id: true },
+        });
+
+        if (!existsInTransaction) {
+          throw new NotFoundException(
+            `Timesheet entry with ID ${id} not found in transaction`,
+          );
+        }
+
+        console.log('🔄 Entry exists in transaction:', existsInTransaction);
+
+        // Perform the update
+        try {
+          const result = await prisma.timesheet.update({
+            where: { id },
+            data: updateData,
+            include: {
+              user: {
+                select: {
+                  id: true,
+                  username: true,
+                  name: true,
+                  surname: true,
+                  position: {
+                    select: { id: true, position_name: true },
+                  },
+                },
+              },
+              project: {
+                select: {
+                  id: true,
+                  project_name: true,
+                  project_code: true,
+                },
+              },
+              task: {
+                select: {
+                  id: true,
+                  task_name: true,
+                },
+              },
+              edited_by: {
+                select: {
+                  id: true,
+                  name: true,
+                  surname: true,
                 },
               },
             },
-            project: {
-              select: {
-                id: true,
-                project_name: true,
-                project_code: true,
-              },
-            },
-            task: {
-              select: {
-                id: true,
-                task_name: true,
-              },
-            },
-            edited_by: {
-              select: {
-                id: true,
-                name: true,
-                surname: true,
-              },
-            },
-          },
-        });
-        
-        console.log('✅ Update operation completed in transaction:', !!result);
-        return result;
-      } catch (updateError) {
-        console.error('❌ Update failed in transaction:', updateError);
-        throw updateError;
-      }
-    });
+          });
+
+          console.log(
+            '✅ Update operation completed in transaction:',
+            !!result,
+          );
+          return result;
+        } catch (updateError) {
+          console.error('❌ Update failed in transaction:', updateError);
+          throw updateError;
+        }
+      },
+    );
 
     console.log(
       '✅ Update completed. Result:',
@@ -1007,7 +1022,13 @@ export class TimesheetsService {
     // Verify the entry still exists in the database
     const verifyEntry = await this.prismaService.timesheet.findUnique({
       where: { id },
-      select: { id: true, date: true, working_time: true, type: true, user_id: true },
+      select: {
+        id: true,
+        date: true,
+        working_time: true,
+        type: true,
+        user_id: true,
+      },
     });
     console.log(
       '🔍 Verification check:',
@@ -1024,7 +1045,7 @@ export class TimesheetsService {
       });
     } else {
       console.error('❌ CRITICAL: Entry disappeared after update!');
-      
+
       // Check if any timesheet with similar data exists
       const similarEntries = await this.prismaService.timesheet.findMany({
         where: {
@@ -1034,7 +1055,7 @@ export class TimesheetsService {
         select: { id: true, date: true, user_id: true, created_at: true },
       });
       console.log('🔍 Similar entries found:', similarEntries);
-      
+
       // Check total timesheet count for debugging
       const totalCount = await this.prismaService.timesheet.count();
       console.log('📊 Total timesheet count in database:', totalCount);

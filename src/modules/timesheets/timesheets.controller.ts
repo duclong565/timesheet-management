@@ -236,29 +236,34 @@ export class TimesheetsController {
   @Get('debug/:id')
   async debugTimesheet(@Param('id') id: string) {
     console.log('🔍 Debug endpoint called for timesheet:', id);
-    
+
     const entry = await this.timesheetsService.findOne(id, id, 'ADMIN');
-    
+
     // Also check if entry exists with raw query
-    const rawCheck = await this.timesheetsService['prismaService'].timesheet.findUnique({
+    const rawCheck = await this.timesheetsService[
+      'prismaService'
+    ].timesheet.findUnique({
       where: { id },
-      select: { 
-        id: true, 
-        date: true, 
-        working_time: true, 
+      select: {
+        id: true,
+        date: true,
+        working_time: true,
         type: true,
         user_id: true,
         created_at: true,
-        updated_at: true
-      }
+        updated_at: true,
+      },
     });
-    
+
     console.log('🔍 Raw database check:', rawCheck);
-    
-    return new ApiResponse({
-      serviceResult: entry,
-      rawDatabaseResult: rawCheck,
-      exists: !!rawCheck
-    }, 'Debug timesheet retrieved');
+
+    return new ApiResponse(
+      {
+        serviceResult: entry,
+        rawDatabaseResult: rawCheck,
+        exists: !!rawCheck,
+      },
+      'Debug timesheet retrieved',
+    );
   }
 }
