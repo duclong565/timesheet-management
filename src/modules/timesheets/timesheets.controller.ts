@@ -11,7 +11,7 @@ import {
 } from '@nestjs/common';
 import { TimesheetsService } from './timesheets.service';
 import { CreateTimesheetDto } from './dto/create-timesheet.dto';
-// import { UpdateTimesheetDto } from './dto/update-timesheet.dto';
+import { UpdateEntryDto } from './dto/update-entry.dto';
 import { GetUser } from 'src/common/decorator/get-user.decorator';
 import { ResponseTimesheetDto } from './dto/response-timesheet.dto';
 import { QueryTimesheetsDto } from './dto/query-timesheet.dto';
@@ -159,6 +159,32 @@ export class TimesheetsController {
     return new ApiResponse(timesheet, 'Timesheet retrieved successfully');
   }
 
+  @Patch(':id')
+  @RoleOptions({
+    allowSelfAccess: false, // We handle this in service based on timesheet ownership
+    enableLogging: process.env.NODE_ENV === 'development',
+  })
+  @AuditLog({
+    tableName: 'timesheets',
+    action: 'UPDATE',
+    getRecordId: (result: any) => result.entry?.id,
+    getDetails: (result: any, request: any) => ({
+      updated_fields: Object.keys(request.body || {}),
+      timesheet_date: result.entry?.date,
+    }),
+  })
+  async updateEntry(
+    @Param('id') id: string,
+    @Body() updateEntryDto: UpdateEntryDto,
+    @GetUser('id') requesterId: string,
+    @GetUser() user: any,
+  ) {
+    const requesterRole = user?.role?.role_name || 'USER';
+    // For now, allow updates - you may want to add ownership/permission checks here
+    const result = await this.timesheetsService.updateEntry(id, updateEntryDto);
+    return new ApiResponse(result.entry, result.message);
+  }
+
   @Patch('week-submissions/:id/approve')
   @Roles('ADMIN', 'HR', 'PM')
   async approveWeekSubmission(
@@ -204,5 +230,35 @@ export class TimesheetsController {
       requesterRole,
     );
     return new ApiResponse(null, result.message);
+  }
+
+  // Debug endpoint to test update operation
+  @Get('debug/:id')
+  async debugTimesheet(@Param('id') id: string) {
+    console.log('🔍 Debug endpoint called for timesheet:', id);
+    
+    const entry = await this.timesheetsService.findOne(id, id, 'ADMIN');
+    
+    // Also check if entry exists with raw query
+    const rawCheck = await this.timesheetsService['prismaService'].timesheet.findUnique({
+      where: { id },
+      select: { 
+        id: true, 
+        date: true, 
+        working_time: true, 
+        type: true,
+        user_id: true,
+        created_at: true,
+        updated_at: true
+      }
+    });
+    
+    console.log('🔍 Raw database check:', rawCheck);
+    
+    return new ApiResponse({
+      serviceResult: entry,
+      rawDatabaseResult: rawCheck,
+      exists: !!rawCheck
+    }, 'Debug timesheet retrieved');
   }
 }

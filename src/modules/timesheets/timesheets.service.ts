@@ -16,6 +16,7 @@ import {
   WeekSubmissionListDto,
   ApproveWeekSubmissionDto,
 } from './dto/week-submission-response.dto';
+import { UpdateEntryDto } from './dto/update-entry.dto';
 
 @Injectable()
 export class TimesheetsService {
@@ -860,5 +861,188 @@ export class TimesheetsService {
     return submission
       ? submission.status === 'SUBMITTED' || submission.status === 'APPROVED'
       : false;
+  }
+
+  async updateEntry(id: string, updateEntryDto: UpdateEntryDto) {
+    console.log('🔍 updateEntry called with:', { id, updateEntryDto });
+
+    const { working_time, type, note, project_id, task_id, date } =
+      updateEntryDto;
+
+    // Check if entry exists before update with full details
+    const entry = await this.prismaService.timesheet.findUnique({
+      where: { id },
+      include: {
+        user: { select: { id: true, name: true, is_active: true } },
+        project: { select: { id: true, project_name: true } },
+        task: { select: { id: true, task_name: true } },
+      },
+    });
+    console.log('📝 Found entry before update:', entry ? {
+      id: entry.id,
+      date: entry.date,
+      user_active: entry.user?.is_active,
+      project_exists: !!entry.project,
+      task_exists: !!entry.task,
+    } : 'NOT FOUND');
+
+    if (!entry) {
+      throw new NotFoundException(`Timesheet entry with ID ${id} not found`);
+    }
+
+    // Validate foreign key references if being updated
+    if (project_id) {
+      const projectExists = await this.prismaService.project.findUnique({
+        where: { id: project_id },
+        select: { id: true, project_name: true }
+      });
+      console.log('🏗️ Project validation:', projectExists ? 'EXISTS' : 'NOT FOUND');
+      if (!projectExists) {
+        throw new NotFoundException(`Project with ID ${project_id} not found`);
+      }
+    }
+
+    if (task_id) {
+      const taskExists = await this.prismaService.task.findUnique({
+        where: { id: task_id },
+        select: { id: true, task_name: true }
+      });
+      console.log('📋 Task validation:', taskExists ? 'EXISTS' : 'NOT FOUND');
+      if (!taskExists) {
+        throw new NotFoundException(`Task with ID ${task_id} not found`);
+      }
+    }
+
+    // Prepare the update data - only include fields that are provided
+    const updateData: any = {};
+
+    if (working_time !== undefined) updateData.working_time = working_time;
+    if (type !== undefined) updateData.type = type;
+    if (note !== undefined) updateData.note = note;
+    if (project_id !== undefined) updateData.project_id = project_id;
+    if (task_id !== undefined) updateData.task_id = task_id;
+
+    // Only update date if it's provided, and convert to proper DateTime format
+    if (date) {
+      // Convert to start of day in ISO format to maintain date consistency
+      const dateObj = new Date(date);
+      dateObj.setHours(0, 0, 0, 0); // Set to start of day
+      updateData.date = dateObj.toISOString();
+      console.log('📅 Date processing:', {
+        originalDate: date,
+        convertedDate: updateData.date,
+      });
+    }
+
+    console.log('🚀 About to update with data:', updateData);
+
+    // Use a transaction to ensure data consistency
+    const updatedEntry = await this.prismaService.$transaction(async (prisma) => {
+      // Double-check entry exists in transaction
+      const existsInTransaction = await prisma.timesheet.findUnique({
+        where: { id },
+        select: { id: true, date: true, user_id: true }
+      });
+      
+      if (!existsInTransaction) {
+        throw new NotFoundException(`Timesheet entry with ID ${id} not found in transaction`);
+      }
+      
+      console.log('🔄 Entry exists in transaction:', existsInTransaction);
+
+      // Perform the update
+      try {
+        const result = await prisma.timesheet.update({
+          where: { id },
+          data: updateData,
+          include: {
+            user: {
+              select: {
+                id: true,
+                username: true,
+                name: true,
+                surname: true,
+                position: {
+                  select: { id: true, position_name: true },
+                },
+              },
+            },
+            project: {
+              select: {
+                id: true,
+                project_name: true,
+                project_code: true,
+              },
+            },
+            task: {
+              select: {
+                id: true,
+                task_name: true,
+              },
+            },
+            edited_by: {
+              select: {
+                id: true,
+                name: true,
+                surname: true,
+              },
+            },
+          },
+        });
+        
+        console.log('✅ Update operation completed in transaction:', !!result);
+        return result;
+      } catch (updateError) {
+        console.error('❌ Update failed in transaction:', updateError);
+        throw updateError;
+      }
+    });
+
+    console.log(
+      '✅ Update completed. Result:',
+      updatedEntry ? 'SUCCESS' : 'FAILED',
+    );
+    console.log('📊 Updated entry ID:', updatedEntry?.id);
+
+    // Verify the entry still exists in the database
+    const verifyEntry = await this.prismaService.timesheet.findUnique({
+      where: { id },
+      select: { id: true, date: true, working_time: true, type: true, user_id: true },
+    });
+    console.log(
+      '🔍 Verification check:',
+      verifyEntry ? 'ENTRY EXISTS' : 'ENTRY MISSING',
+    );
+
+    if (verifyEntry) {
+      console.log('✅ Entry details after update:', {
+        id: verifyEntry.id,
+        date: verifyEntry.date,
+        working_time: verifyEntry.working_time,
+        type: verifyEntry.type,
+        user_id: verifyEntry.user_id,
+      });
+    } else {
+      console.error('❌ CRITICAL: Entry disappeared after update!');
+      
+      // Check if any timesheet with similar data exists
+      const similarEntries = await this.prismaService.timesheet.findMany({
+        where: {
+          user_id: entry.user_id,
+          date: updateData.date || entry.date,
+        },
+        select: { id: true, date: true, user_id: true, created_at: true },
+      });
+      console.log('🔍 Similar entries found:', similarEntries);
+      
+      // Check total timesheet count for debugging
+      const totalCount = await this.prismaService.timesheet.count();
+      console.log('📊 Total timesheet count in database:', totalCount);
+    }
+
+    return {
+      message: 'Timesheet entry updated successfully',
+      entry: updatedEntry,
+    };
   }
 }
