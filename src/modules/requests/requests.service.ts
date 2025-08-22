@@ -260,7 +260,11 @@ export class RequestsService {
   }
 
   async getMyRequests(userId, queryDto: QueryRequestsDto) {
-    const { status, type, startDate, endDate, page, limit } = queryDto;
+    const { status, type, startDate, endDate, page = 1, limit = 10 } = queryDto;
+
+    // Ensure page and limit are valid numbers
+    const pageNum = Math.max(1, Number(page) || 1);
+    const limitNum = Math.max(1, Math.min(100, Number(limit) || 10)); // Cap at 100
 
     const user = await this.prismaService.user.findUnique({
       where: { id: userId },
@@ -329,23 +333,27 @@ export class RequestsService {
       orderBy: {
         created_at: 'desc',
       },
-      skip: (page - 1) * limit,
-      take: limit * 1,
+      skip: (pageNum - 1) * limitNum,
+      take: limitNum,
     });
 
     return {
       data: requests,
       meta: {
         total,
-        page,
-        limit,
-        pages: Math.ceil(total / limit),
+        page: pageNum,
+        limit: limitNum,
+        pages: Math.ceil(total / limitNum),
       },
     };
   }
 
   async getPendingRequests(aprroverId: string, queryDto: QueryRequestsDto) {
-    const { type, startDate, endDate, page, limit } = queryDto;
+    const { type, startDate, endDate, page = 1, limit = 10 } = queryDto;
+
+    // Ensure page and limit are valid numbers
+    const pageNum = Math.max(1, Number(page) || 1);
+    const limitNum = Math.max(1, Math.min(100, Number(limit) || 10)); // Cap at 100
 
     const approver = await this.prismaService.user.findUnique({
       where: { id: aprroverId },
@@ -386,8 +394,8 @@ export class RequestsService {
           data: [],
           meta: {
             total: 0,
-            page,
-            limit,
+            page: pageNum,
+            limit: limitNum,
             pages: 0,
           },
         };
@@ -449,23 +457,33 @@ export class RequestsService {
       orderBy: {
         created_at: 'desc',
       },
-      skip: (page - 1) * limit,
-      take: limit * 1,
+      skip: (pageNum - 1) * limitNum,
+      take: limitNum,
     });
 
     return {
       data: requests,
       meta: {
         total,
-        page,
-        limit,
-        pages: Math.ceil(total / limit),
+        page: pageNum,
+        limit: limitNum,
+        pages: Math.ceil(total / limitNum),
       },
     };
   }
 
   async getTeamCalendar(userId: string, queryDto: TeamCalendarDto) {
-    const { month, year, projectId, branchId } = queryDto;
+    const {
+      month,
+      year,
+      status = 'ALL',
+      requestType = 'ALL',
+      projectId,
+      branchId,
+      search,
+      page = 1,
+      limit = 50,
+    } = queryDto;
 
     const user = await this.prismaService.user.findUnique({
       where: { id: userId },
@@ -501,10 +519,19 @@ export class RequestsService {
     const endDate = new Date(year, month, 0); // Last day of the month
 
     const where: any = {
-      status: 'APPROVED',
       start_date: { lte: endDate },
       end_date: { gte: startDate },
     };
+
+    // Apply status filter
+    if (status && status !== 'ALL') {
+      where.status = status;
+    }
+
+    // Apply request type filter
+    if (requestType && requestType !== 'ALL') {
+      where.request_type = requestType;
+    }
 
     if (projectId) {
       where.project_id = projectId;
@@ -512,6 +539,18 @@ export class RequestsService {
 
     if (branchId) {
       where.user.branch_id = branchId;
+    }
+
+    // Apply search filter (search by user name, surname, or username)
+    if (search && search.trim()) {
+      where.user = {
+        ...where.user,
+        OR: [
+          { name: { contains: search.trim(), mode: 'insensitive' } },
+          { surname: { contains: search.trim(), mode: 'insensitive' } },
+          { username: { contains: search.trim(), mode: 'insensitive' } },
+        ],
+      };
     }
 
     const requests = await this.prismaService.request.findMany({
@@ -539,17 +578,14 @@ export class RequestsService {
         },
         absence_type: true,
       },
-      orderBy: [
-        { start_date: 'asc' },
-        { user: { surname: 'asc' } },
-      ],
+      orderBy: [{ start_date: 'asc' }, { user: { surname: 'asc' } }],
     });
 
     const days = endDate.getDate();
 
     const userMap = new Map();
 
-    requests.forEach(request => {
+    requests.forEach((request) => {
       const userId = request.user.id;
       if (!userMap.has(userId)) {
         userMap.set(userId, {
@@ -558,49 +594,58 @@ export class RequestsService {
             name: `${request.user.name} ${request.user.surname}`,
             position: request.user.position?.position_name || '',
           },
-          days: Array(days).fill(null) // Initialize with nulls for all days
+          days: Array(days).fill(null), // Initialize with nulls for all days
         });
       }
-      
+
       // Calculate which days of the month this request covers
       const requestStart = new Date(request.start_date);
       const requestEnd = new Date(request.end_date);
-      
+
       // Adjust start date if it's before the beginning of the month
-      const effectiveStart = requestStart < startDate ? 1 : requestStart.getDate();
-      
+      const effectiveStart =
+        requestStart < startDate ? 1 : requestStart.getDate();
+
       // Adjust end date if it's after the end of the month
       const effectiveEnd = requestEnd > endDate ? days : requestEnd.getDate();
-      
+
       // Fill in the days this request covers
       for (let day = effectiveStart; day <= effectiveEnd; day++) {
         userMap.get(userId).days[day - 1] = {
           type: request.request_type,
           absence_type: request.absence_type?.type_name || null,
-          project: request.project ? {
-            id: request.project.id,
-            name: request.project.project_name,
-          } : null,
+          project: request.project
+            ? {
+                id: request.project.id,
+                name: request.project.project_name,
+              }
+            : null,
           requestId: request.id,
-          period: day === effectiveStart ? request.start_period : 
-                 (day === effectiveEnd ? request.end_period : 'FULL_DAY')
+          period:
+            day === effectiveStart
+              ? request.start_period
+              : day === effectiveEnd
+                ? request.end_period
+                : 'FULL_DAY',
         };
       }
     });
-    
+
     // Convert map to array
     const calendarData = Array.from(userMap.values());
-    
+
     // Generate date information for the calendar
-    const dateInfo = Array(days).fill(0).map((_, index) => {
-      const date = new Date(year, month - 1, index + 1);
-      return {
-        day: index + 1,
-        weekday: date.toLocaleString('en-US', { weekday: 'short' }),
-        isWeekend: [0, 6].includes(date.getDay()), // 0 is Sunday, 6 is Saturday
-      };
-    });
-    
+    const dateInfo = Array(days)
+      .fill(0)
+      .map((_, index) => {
+        const date = new Date(year, month - 1, index + 1);
+        return {
+          day: index + 1,
+          weekday: date.toLocaleString('en-US', { weekday: 'short' }),
+          isWeekend: [0, 6].includes(date.getDay()), // 0 is Sunday, 6 is Saturday
+        };
+      });
+
     return {
       month,
       year,
