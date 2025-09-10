@@ -8,7 +8,7 @@ export const queryTimesheetsSchema = z
   .object({
     // Pagination
     page: z.coerce.number().int().positive().default(1),
-    limit: z.coerce.number().int().positive().max(100).default(10),
+    limit: z.coerce.number().int().positive().max(2000).default(10),
 
     // Filtering
     status: z
@@ -75,6 +75,9 @@ export const queryTimesheetsSchema = z
     has_punishment: z.coerce.boolean().optional(),
     min_working_time: z.coerce.number().positive().optional(),
     max_working_time: z.coerce.number().positive().optional(),
+
+    // Team data access for admin users
+    include_team_data: z.coerce.boolean().optional(),
   })
   .refine(
     (data) => {

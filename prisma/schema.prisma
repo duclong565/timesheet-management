@@ -94,6 +94,7 @@ model Permission {
   id          String           @id @default(uuid())
   name        String           @unique // e.g., "VIEW_USERS", "ADD_NEW_USER"
   description String?          @db.Text // Optional description of the permission
+  category    String           @default("GENERAL") // Category for grouping permissions (DASHBOARD, ADMIN, PERSONAL, MANAGEMENT, etc.)
   created_at  DateTime         @default(now())
   updated_at  DateTime         @default(now()) @updatedAt
 
@@ -390,4 +391,55 @@ enum ProfileChangeRequestStatus {
   PENDING
   APPROVED
   REJECTED
+}
+
+model BackgroundJob {
+  id           String               @id @default(uuid())
+  name         String               @db.VarChar(255)
+  status       BackgroundJobStatus  @default(PENDING)
+  type         BackgroundJobType    @default(ONE_TIME)
+  payload      Json?                // Store job parameters/data
+  result       Json?                // Store job execution results
+  error_message String?             @db.Text
+  scheduled_at DateTime?            // When the job is scheduled to run
+  started_at   DateTime?            // When the job actually started
+  completed_at DateTime?            // When the job completed
+  created_at   DateTime             @default(now())
+  updated_at   DateTime             @default(now()) @updatedAt
+
+  @@map("background_jobs")
+}
+
+model Configuration {
+  id           String            @id @default(uuid())
+  config_key   String            @unique @db.VarChar(255)
+  config_value String            @db.Text
+  config_type  ConfigurationType @default(STRING)
+  description  String?           @db.Text
+  category     String            @db.VarChar(100)
+  is_system    Boolean           @default(false) // System configs cannot be deleted
+  created_at   DateTime          @default(now())
+  updated_at   DateTime          @default(now()) @updatedAt
+
+  @@map("configurations")
+}
+
+enum BackgroundJobStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+enum BackgroundJobType {
+  ONE_TIME
+  RECURRING
+}
+
+enum ConfigurationType {
+  STRING
+  NUMBER
+  BOOLEAN
+  JSON
 }

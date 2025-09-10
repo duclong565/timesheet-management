@@ -55,3 +55,15 @@ export const assignPermissionAuditConfig = (): AuditLogMetadata => ({
     assigned_by_ip: request.ip,
   }),
 });
+
+export const setRolePermissionsAuditConfig = (): AuditLogMetadata => ({
+  tableName: 'role_permissions',
+  action: 'SET_ROLE_PERMISSIONS',
+  getRecordId: (result) => result?.data?.id || result?.id,
+  getDetails: (result, request) => ({
+    role_id: request.params.id,
+    permission_ids: request.body.permission_ids,
+    permissions_count: request.body.permission_ids?.length || 0,
+    updated_by_ip: request.ip,
+  }),
+});

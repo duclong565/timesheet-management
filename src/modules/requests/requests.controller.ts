@@ -70,8 +70,12 @@ export class RequestsController {
   }
 
   @Get()
-  findAll() {
-    return this.requestsService.findAll();
+  @Roles('HR', 'PM', 'ADMIN')
+  async getAllRequests(
+    @GetUser('id') userId: string,
+    @Query() queryDto: QueryRequestsDto,
+  ) {
+    return this.requestsService.getAllRequests(userId, queryDto);
   }
 
   @Get(':id')

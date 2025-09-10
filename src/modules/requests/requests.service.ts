@@ -10,6 +10,11 @@ import { PrismaService } from 'src/prisma/prisma.service';
 import { ResponseRequestDto } from './dto/response-request.dto';
 import { QueryRequestsDto } from './dto/query-request.dto';
 import { TeamCalendarDto } from './dto/team-calendar.dto';
+import {
+  buildRequestDateRangeConditions,
+  parseAndValidateDate,
+  validateDateRange,
+} from 'src/common/utils/date.utils';
 
 @Injectable()
 export class RequestsService {
@@ -71,10 +76,21 @@ export class RequestsService {
       note,
     } = createRequestDto;
 
-    let { start_date, end_date } = createRequestDto;
+    const { start_date: startDateInput, end_date: endDateInput } =
+      createRequestDto;
 
-    start_date = new Date(start_date);
-    end_date = new Date(end_date);
+    // Parse and validate dates
+    const start_date = parseAndValidateDate(startDateInput, 'start_date');
+    const end_date = parseAndValidateDate(endDateInput, 'end_date');
+
+    if (!start_date || !end_date) {
+      throw new BadRequestException(
+        'Both start_date and end_date are required',
+      );
+    }
+
+    // Validate date range
+    validateDateRange(start_date, end_date);
 
     if (!user || !user.is_active) {
       throw new BadRequestException('User not found or inactive');
@@ -199,7 +215,9 @@ export class RequestsService {
 
     const updateData: any = {
       status: action === 'APPROVE' ? 'APPROVED' : 'REJECTED',
-      modified_by_id: editorId,
+      modified_by: {
+        connect: { id: editorId },
+      },
       modified_at: new Date(),
     };
 
@@ -262,6 +280,9 @@ export class RequestsService {
   async getMyRequests(userId, queryDto: QueryRequestsDto) {
     const { status, type, startDate, endDate, page = 1, limit = 10 } = queryDto;
 
+    // Validate date range
+    validateDateRange(startDate, endDate);
+
     // Ensure page and limit are valid numbers
     const pageNum = Math.max(1, Number(page) || 1);
     const limitNum = Math.max(1, Math.min(100, Number(limit) || 10)); // Cap at 100
@@ -288,15 +309,15 @@ export class RequestsService {
       where.request_type = Array.isArray(type) ? { in: type } : type;
     }
 
+    // Build date range conditions using utility function
     if (startDate || endDate) {
-      where.AND = where.AND || [];
-
-      if (startDate) {
-        where.AND.push({ start_date: { gte: startDate } });
-      }
-
-      if (endDate) {
-        where.AND.push({ end_date: { lte: endDate } });
+      const dateConditions = buildRequestDateRangeConditions(
+        startDate,
+        endDate,
+      );
+      if (dateConditions.length > 0) {
+        where.AND = where.AND || [];
+        where.AND.push(...dateConditions);
       }
     }
 
@@ -350,6 +371,9 @@ export class RequestsService {
 
   async getPendingRequests(aprroverId: string, queryDto: QueryRequestsDto) {
     const { type, startDate, endDate, page = 1, limit = 10 } = queryDto;
+
+    // Validate date range
+    validateDateRange(startDate, endDate);
 
     // Ensure page and limit are valid numbers
     const pageNum = Math.max(1, Number(page) || 1);
@@ -408,17 +432,15 @@ export class RequestsService {
       where.request_type = Array.isArray(type) ? { in: type } : type;
     }
 
+    // Build date range conditions using utility function
     if (startDate || endDate) {
-      where.AND = where.AND || [];
-
-      if (startDate) {
-        const startDateISO = new Date(startDate);
-        where.AND.push({ start_date: { gte: startDateISO } });
-      }
-
-      if (endDate) {
-        const endDateISO = new Date(endDate);
-        where.AND.push({ end_date: { lte: endDateISO } });
+      const dateConditions = buildRequestDateRangeConditions(
+        startDate,
+        endDate,
+      );
+      if (dateConditions.length > 0) {
+        where.AND = where.AND || [];
+        where.AND.push(...dateConditions);
       }
     }
 
@@ -654,8 +676,93 @@ export class RequestsService {
     };
   }
 
-  findAll() {
-    return `This action returns all requests`;
+  async getAllRequests(userId: string, queryDto: QueryRequestsDto) {
+    const { status, type, startDate, endDate, page = 1, limit = 10 } = queryDto;
+
+    // Validate date range
+    validateDateRange(startDate, endDate);
+
+    // Ensure page and limit are valid numbers
+    const pageNum = Math.max(1, Number(page) || 1);
+    const limitNum = Math.max(1, Math.min(100, Number(limit) || 10));
+
+    const where: any = {};
+
+    // Status filtering - allow all statuses for admins
+    if (status) {
+      where.status = Array.isArray(status) ? { in: status } : status;
+    }
+
+    // Type filtering
+    if (type) {
+      where.request_type = Array.isArray(type) ? { in: type } : type;
+    }
+
+    // Date range filtering
+    if (startDate || endDate) {
+      const dateConditions = buildRequestDateRangeConditions(
+        startDate,
+        endDate,
+      );
+      if (dateConditions.length > 0) {
+        where.AND = where.AND || [];
+        where.AND.push(...dateConditions);
+      }
+    }
+
+    // Execute the query with pagination
+    const [requests, total] = await Promise.all([
+      this.prismaService.request.findMany({
+        where,
+        include: {
+          user: {
+            select: {
+              id: true,
+              name: true,
+              surname: true,
+              email: true,
+            },
+          },
+          project: {
+            select: {
+              id: true,
+              project_name: true,
+            },
+          },
+          absence_type: {
+            select: {
+              id: true,
+              type_name: true,
+            },
+          },
+          modified_by: {
+            select: {
+              id: true,
+              name: true,
+              surname: true,
+            },
+          },
+        },
+        orderBy: { created_at: 'desc' },
+        skip: (pageNum - 1) * limitNum,
+        take: limitNum,
+      }),
+      this.prismaService.request.count({ where }),
+    ]);
+
+    const totalPages = Math.ceil(total / limitNum);
+
+    return {
+      data: requests,
+      pagination: {
+        currentPage: pageNum,
+        totalPages,
+        totalItems: total,
+        itemsPerPage: limitNum,
+        hasNextPage: pageNum < totalPages,
+        hasPreviousPage: pageNum > 1,
+      },
+    };
   }
 
   findOne(id: number) {

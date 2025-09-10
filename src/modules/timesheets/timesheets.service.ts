@@ -17,6 +17,12 @@ import {
   ApproveWeekSubmissionDto,
 } from './dto/week-submission-response.dto';
 import { UpdateEntryDto } from './dto/update-entry.dto';
+import {
+  buildDateRangeConditions,
+  parseAndValidateDate,
+  parseToStartOfDay,
+  validateDateRange,
+} from 'src/common/utils/date.utils';
 
 @Injectable()
 export class TimesheetsService {
@@ -38,10 +44,16 @@ export class TimesheetsService {
       throw new BadRequestException('User not found or inactive');
     }
 
+    // Parse and validate date
+    const timesheetDate = parseAndValidateDate(date, 'date');
+    if (!timesheetDate) {
+      throw new BadRequestException('Valid date is required');
+    }
+
     const existingTimesheet = await this.prismaService.timesheet.findFirst({
       where: {
         user_id: userId,
-        date: new Date(date),
+        date: timesheetDate,
       },
     });
     if (existingTimesheet) {
@@ -51,7 +63,7 @@ export class TimesheetsService {
     const timesheet = await this.prismaService.timesheet.create({
       data: {
         user_id: userId,
-        date: new Date(date),
+        date: timesheetDate,
         working_time: workingTime,
         type,
         note,
@@ -147,6 +159,7 @@ export class TimesheetsService {
       has_punishment,
       min_working_time,
       max_working_time,
+      include_team_data,
     } = query;
 
     try {
@@ -157,9 +170,19 @@ export class TimesheetsService {
       if (userRole === 'USER') {
         // Regular users can only see their own timesheets
         where.user_id = userId;
-      } else if (user_id) {
-        // HR/ADMIN/PM can filter by specific user
-        where.user_id = user_id;
+      } else {
+        // HR/ADMIN/PM users
+        if (user_id) {
+          // Filter by specific user when user_id is provided
+          where.user_id = user_id;
+        } else if (include_team_data) {
+          // 🚀 Admin users can explicitly request team data
+          // No user_id filter = get all team data
+        } else {
+          // 🔧 Default to own timesheets when no user_id specified and no team data requested
+          // This prevents accidental exposure of all users' data
+          where.user_id = userId;
+        }
       }
 
       // Status filtering
@@ -177,11 +200,18 @@ export class TimesheetsService {
       if (task_id) where.task_id = task_id;
       if (edited_by_id) where.edited_by_id = edited_by_id;
 
-      // Date range filtering
+      // Date range filtering using utility function
       if (start_date || end_date) {
-        where.date = {};
-        if (start_date) where.date.gte = start_date;
-        if (end_date) where.date.lte = end_date;
+        validateDateRange(start_date, end_date);
+        const dateConditions = buildDateRangeConditions(
+          start_date,
+          end_date,
+          'date',
+        );
+        if (dateConditions.length > 0) {
+          where.AND = where.AND || [];
+          where.AND.push(...dateConditions);
+        }
       }
 
       // Working time range filtering
@@ -448,7 +478,14 @@ export class TimesheetsService {
   ): Promise<WeekSubmissionDto> {
     try {
       const { week_start_date } = submitWeekDto;
-      const startDate = new Date(week_start_date);
+      const startDate = parseAndValidateDate(
+        week_start_date,
+        'week_start_date',
+      );
+      if (!startDate) {
+        throw new BadRequestException('Valid week_start_date is required');
+      }
+
       const endDate = new Date(startDate);
       endDate.setDate(startDate.getDate() + 6); // Sunday = Monday + 6 days
 
@@ -849,7 +886,10 @@ export class TimesheetsService {
     userId: string,
     weekStartDate: string,
   ): Promise<boolean> {
-    const startDate = new Date(weekStartDate);
+    const startDate = parseAndValidateDate(weekStartDate, 'weekStartDate');
+    if (!startDate) {
+      throw new BadRequestException('Valid weekStartDate is required');
+    }
     const submission = await this.prismaService.weekSubmission.findUnique({
       where: {
         user_id_week_start_date: {

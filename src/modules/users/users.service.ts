@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 import passport from 'passport';
 import { CreateUserDto } from 'src/auth/dto/create-user.dto';
+import { CreateAdminUserDto } from './dto/create-admin-user.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import * as bcrypt from 'bcrypt';
@@ -50,6 +51,78 @@ export class UsersService {
     } catch (error) {
       // Handle unique constraint violation
       // P2002 is the error code for unique constraint violation in Prisma
+      if (error.code === 'P2002') {
+        throw new ConflictException(
+          `User with this ${error.meta?.target?.[0]} already exists`,
+        );
+      }
+      throw new InternalServerErrorException('Failed to create user');
+    }
+  }
+
+  async createAdminUser(createAdminUserDto: CreateAdminUserDto) {
+    try {
+      // Check for existing username and email
+      const existingUsername = await this.findByUsername(
+        createAdminUserDto.username,
+      );
+      const existingEmail = await this.findByEmail(createAdminUserDto.email);
+
+      if (existingEmail || existingUsername) {
+        throw new ConflictException('Username or email already exists');
+      }
+
+      // Hash the password
+      const hashedPassword = await bcrypt.hash(createAdminUserDto.password, 10);
+
+      // Create user with all admin fields
+      const user = await this.prisma.user.create({
+        data: {
+          username: createAdminUserDto.username,
+          password: hashedPassword,
+          email: createAdminUserDto.email,
+          name: createAdminUserDto.name,
+          surname: createAdminUserDto.surname,
+          role_id: createAdminUserDto.role_id,
+          phone: createAdminUserDto.phone,
+          address: createAdminUserDto.address,
+          sex: createAdminUserDto.sex,
+          employee_type: createAdminUserDto.employee_type,
+          level: createAdminUserDto.level,
+          allowed_leavedays: createAdminUserDto.allowed_leavedays,
+          is_active: createAdminUserDto.is_active,
+          branch_id: createAdminUserDto.branch_id,
+          position_id: createAdminUserDto.position_id,
+          trainer_id: createAdminUserDto.trainer_id,
+        },
+        include: {
+          role: {
+            select: {
+              id: true,
+              role_name: true,
+              description: true,
+            },
+          },
+          branch: {
+            select: {
+              id: true,
+              branch_name: true,
+            },
+          },
+          position: {
+            select: {
+              id: true,
+              position_name: true,
+            },
+          },
+        },
+      });
+
+      // Remove password from response
+      const { password: _, ...userWithoutPassword } = user;
+      return userWithoutPassword;
+    } catch (error) {
+      // Handle unique constraint violation
       if (error.code === 'P2002') {
         throw new ConflictException(
           `User with this ${error.meta?.target?.[0]} already exists`,
@@ -204,7 +277,8 @@ export class UsersService {
     if (branch_id) where.branch_id = branch_id;
     if (position_id) where.position_id = position_id;
     if (is_active !== undefined) where.is_active = is_active;
-    if (userId) where.id = userId;
+    // Note: userId parameter is for audit purposes only, not for filtering
+    // Admin should see all users, not just their own account
 
     const orderBy: any = {};
     orderBy[sort_by] = sort_order.toLowerCase();
