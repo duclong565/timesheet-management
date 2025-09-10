@@ -18,7 +18,11 @@
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
-    "seed": "ts-node prisma/seed.ts"
+    "seed": "ts-node prisma/seed.ts",
+    "migrate:roles": "node scripts/run-migration.js",
+    "migrate:roles:force": "node scripts/run-migration.js --force",
+    "migrate:roles:no-backup": "node scripts/run-migration.js --skip-backup",
+    "validate:permissions": "tsx scripts/migrate-roles.ts"
   },
   "dependencies": {
     "@anatine/zod-nestjs": "^2.0.12",
@@ -69,6 +73,7 @@
     "ts-loader": "^9.5.2",
     "ts-node": "^10.9.2",
     "tsconfig-paths": "^4.2.0",
+    "tsx": "^4.20.5",
     "typescript": "^5.8.3",
     "typescript-eslint": "^8.20.0"
   },

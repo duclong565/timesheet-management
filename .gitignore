@@ -1,3 +1,5 @@
+
+
 # compiled output
 /dist
 /node_modules
@@ -54,3 +56,12 @@ pids
 
 # Diagnostic reports (https://nodejs.org/api/report.html)
 report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
+
+# Cursor
+.cursorrules
+
+# Markdown (ignore all except README)
+*.md
+!README.md
+!README.MD
+!readme.md

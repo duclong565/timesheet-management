@@ -101,6 +101,7 @@ export class RolesService {
                 id: true,
                 name: true,
                 description: true,
+                category: true,
               },
             },
           },
@@ -151,10 +152,22 @@ export class RolesService {
           });
         }
 
-        // Return updated role with counts
+        // Return updated role with full details including permissions
         return await tx.role.findUnique({
           where: { id },
           include: {
+            permissions: {
+              include: {
+                permission: {
+                  select: {
+                    id: true,
+                    name: true,
+                    description: true,
+                    category: true,
+                  },
+                },
+              },
+            },
             _count: {
               select: { users: true, permissions: true },
             },
@@ -172,6 +185,121 @@ export class RolesService {
       }
       throw new InternalServerErrorException('Failed to update role');
     }
+  }
+
+  async setRolePermissions(roleId: string, permissionIds: string[]) {
+    try {
+      // Verify role exists
+      const role = await this.prisma.role.findUnique({
+        where: { id: roleId },
+      });
+
+      if (!role) {
+        throw new NotFoundException(`Role with ID ${roleId} not found`);
+      }
+
+      // Verify all permissions exist
+      const permissions = await this.prisma.permission.findMany({
+        where: { id: { in: permissionIds } },
+      });
+
+      if (permissions.length !== permissionIds.length) {
+        throw new BadRequestException('One or more permission IDs are invalid');
+      }
+
+      return await this.prisma.$transaction(async (tx) => {
+        // Remove all existing permissions for this role
+        await tx.rolePermission.deleteMany({
+          where: { role_id: roleId },
+        });
+
+        // Add new permissions
+        if (permissionIds.length > 0) {
+          await tx.rolePermission.createMany({
+            data: permissionIds.map((permissionId) => ({
+              role_id: roleId,
+              permission_id: permissionId,
+            })),
+          });
+        }
+
+        // Return updated role with permissions
+        return await tx.role.findUnique({
+          where: { id: roleId },
+          include: {
+            permissions: {
+              include: {
+                permission: {
+                  select: {
+                    id: true,
+                    name: true,
+                    description: true,
+                    category: true,
+                  },
+                },
+              },
+            },
+            _count: {
+              select: { users: true, permissions: true },
+            },
+          },
+        });
+      });
+    } catch (error) {
+      if (
+        error instanceof NotFoundException ||
+        error instanceof BadRequestException
+      ) {
+        throw error;
+      }
+      throw new InternalServerErrorException('Failed to set role permissions');
+    }
+  }
+
+  async getRolePermissionsGroupedByCategory(roleId: string) {
+    const role = await this.prisma.role.findUnique({
+      where: { id: roleId },
+      include: {
+        permissions: {
+          include: {
+            permission: {
+              select: {
+                id: true,
+                name: true,
+                description: true,
+                category: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!role) {
+      throw new NotFoundException(`Role with ID ${roleId} not found`);
+    }
+
+    // Group permissions by category
+    const groupedPermissions = role.permissions.reduce(
+      (acc, rp) => {
+        const category = rp.permission.category;
+        if (!acc[category]) {
+          acc[category] = [];
+        }
+        acc[category].push(rp.permission);
+        return acc;
+      },
+      {} as Record<string, any[]>,
+    );
+
+    return {
+      role: {
+        id: role.id,
+        role_name: role.role_name,
+        description: role.description,
+      },
+      permissions: groupedPermissions,
+    };
   }
 
   async remove(id: string) {

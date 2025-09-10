@@ -26,6 +26,10 @@ import { AuditLogsModule } from './modules/audit-logs/audit-logs.module';
 import { AuditLogInterceptor } from './modules/audit-logs/interceptor/audit-log.interceptor';
 import { HealthModule } from './health/health.module';
 import { DashboardModule } from './modules/dashboard/dashboard.module';
+import { BackgroundJobsModule } from './modules/background-jobs/background-jobs.module';
+import { ConfigurationsModule } from './modules/configurations/configurations.module';
+import { ProfileChangeRequestsModule } from './modules/profile-change-requests/profile-change-requests.module';
+import { PermissionsModule } from './modules/permissions/permissions.module';
 
 @Module({
   imports: [
@@ -51,6 +55,10 @@ import { DashboardModule } from './modules/dashboard/dashboard.module';
     AuditLogsModule,
     HealthModule,
     DashboardModule,
+    BackgroundJobsModule,
+    ConfigurationsModule,
+    ProfileChangeRequestsModule,
+    PermissionsModule,
   ],
   controllers: [],
   providers: [

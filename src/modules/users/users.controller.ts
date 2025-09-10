@@ -15,6 +15,7 @@ import {
 } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { CreateAdminUserDto } from './dto/create-admin-user.dto';
 import { Public } from 'src/auth/decorators/public-route.decorator';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
@@ -58,6 +59,23 @@ export class UsersController {
       result.pagination,
       'Users retrieved successfully',
     );
+  }
+
+  @Post()
+  @AuditLog({
+    tableName: 'users',
+    action: 'CREATE',
+    getRecordId: (result: any) => result.data.id,
+    getDetails: (result: any, request: any) => ({
+      created_by: request.user.id,
+      user_email: result.data.email,
+      user_role: result.data.role?.role_name,
+    }),
+  })
+  @Roles('ADMIN', 'HR')
+  async createAdminUser(@Body() createAdminUserDto: CreateAdminUserDto) {
+    const user = await this.usersService.createAdminUser(createAdminUserDto);
+    return new ApiResponse(user, 'User created successfully');
   }
 
   @Get('stats')

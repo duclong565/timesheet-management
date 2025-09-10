@@ -95,26 +95,26 @@ async function main() {
 async function cleanDatabase() {
   // Map table names to their corresponding Prisma model names
   const tableModelMap: Record<string, string> = {
-    'audit_logs': 'auditLog',
-    'requests': 'request',
-    'timesheet_complaints': 'timesheetComplaint',
-    'timesheets': 'timesheet',
-    'project_ot_settings': 'projectOtSetting',
-    'offday_settings': 'offdaySetting',
-    'tasks': 'task',
-    'users_project': 'userProject',
-    'projects': 'project',
-    'clients': 'client',
-    'working_times': 'workingTime',
-    'capability_settings': 'capabilitySetting',
-    'capabilities': 'capability',
-    'absence_types': 'absenceType',
-    'role_permissions': 'rolePermission',
-    'permissions': 'permission',
-    'users': 'user',
-    'positions': 'position',
-    'branches': 'branch',
-    'roles': 'role'
+    audit_logs: 'auditLog',
+    requests: 'request',
+    timesheet_complaints: 'timesheetComplaint',
+    timesheets: 'timesheet',
+    project_ot_settings: 'projectOtSetting',
+    offday_settings: 'offdaySetting',
+    tasks: 'task',
+    users_project: 'userProject',
+    projects: 'project',
+    clients: 'client',
+    working_times: 'workingTime',
+    capability_settings: 'capabilitySetting',
+    capabilities: 'capability',
+    absence_types: 'absenceType',
+    role_permissions: 'rolePermission',
+    permissions: 'permission',
+    users: 'user',
+    positions: 'position',
+    branches: 'branch',
+    roles: 'role',
   };
 
   // Process tables in reverse order to respect foreign key constraints
@@ -160,26 +160,376 @@ async function seedRoles() {
 
 async function seedPermissions() {
   const permissionData = [
-    { name: 'VIEW_DASHBOARD', description: 'Can view dashboard' },
-    { name: 'VIEW_USERS', description: 'Can view user list' },
-    { name: 'CREATE_USER', description: 'Can create users' },
-    { name: 'EDIT_USER', description: 'Can edit users' },
-    { name: 'DELETE_USER', description: 'Can delete users' },
-    { name: 'VIEW_PROJECTS', description: 'Can view projects' },
-    { name: 'MANAGE_PROJECTS', description: 'Can create/edit/delete projects' },
-    { name: 'VIEW_TIMESHEETS', description: 'Can view timesheets' },
+    // Dashboard
+    {
+      name: 'VIEW_DASHBOARD',
+      description: 'Access dashboard page',
+      category: 'DASHBOARD',
+    },
+
+    // Profile
+    {
+      name: 'VIEW_PROFILE',
+      description: 'View profile information',
+      category: 'PROFILE',
+    },
+    {
+      name: 'EDIT_PROFILE',
+      description: 'Edit profile information',
+      category: 'PROFILE',
+    },
+
+    // Admin - Users
+    {
+      name: 'VIEW_ADMIN_USERS',
+      description: 'Access admin users page',
+      category: 'ADMIN',
+    },
+    {
+      name: 'CREATE_USER',
+      description: 'Create new users',
+      category: 'ADMIN',
+    },
+    {
+      name: 'EDIT_USER',
+      description: 'Edit user information',
+      category: 'ADMIN',
+    },
+    {
+      name: 'DELETE_USER',
+      description: 'Delete users',
+      category: 'ADMIN',
+    },
+
+    // Admin - Roles
+    {
+      name: 'VIEW_ADMIN_ROLES',
+      description: 'Access admin roles page',
+      category: 'ADMIN',
+    },
+    {
+      name: 'MANAGE_ROLES',
+      description: 'Create, edit, and delete roles',
+      category: 'ADMIN',
+    },
+
+    // Admin - Configuration
+    {
+      name: 'VIEW_ADMIN_CONFIG',
+      description: 'Access admin configuration page',
+      category: 'ADMIN',
+    },
+    {
+      name: 'MANAGE_CONFIG',
+      description: 'Manage system configuration',
+      category: 'ADMIN',
+    },
+
+    // Admin - Clients
+    {
+      name: 'VIEW_ADMIN_CLIENTS',
+      description: 'Access admin clients page',
+      category: 'ADMIN',
+    },
+    {
+      name: 'MANAGE_CLIENTS',
+      description: 'Create, edit, and delete clients',
+      category: 'ADMIN',
+    },
+
+    // Admin - Tasks
+    {
+      name: 'VIEW_ADMIN_TASKS',
+      description: 'Access admin tasks page',
+      category: 'ADMIN',
+    },
+    {
+      name: 'MANAGE_TASKS',
+      description: 'Create, edit, and delete tasks',
+      category: 'ADMIN',
+    },
+
+    // Admin - Leave Types
+    {
+      name: 'VIEW_ADMIN_LEAVE_TYPES',
+      description: 'Access admin leave types page',
+      category: 'ADMIN',
+    },
+    {
+      name: 'MANAGE_LEAVE_TYPES',
+      description: 'Create, edit, and delete leave types',
+      category: 'ADMIN',
+    },
+
+    // Admin - Branches
+    {
+      name: 'VIEW_ADMIN_BRANCHES',
+      description: 'Access admin branches page',
+      category: 'ADMIN',
+    },
+    {
+      name: 'MANAGE_BRANCHES',
+      description: 'Create, edit, and delete branches',
+      category: 'ADMIN',
+    },
+
+    // Admin - Positions
+    {
+      name: 'VIEW_ADMIN_POSITIONS',
+      description: 'Access admin positions page',
+      category: 'ADMIN',
+    },
+    {
+      name: 'MANAGE_POSITIONS',
+      description: 'Create, edit, and delete positions',
+      category: 'ADMIN',
+    },
+
+    // Admin - Capabilities
+    {
+      name: 'VIEW_ADMIN_CAPABILITIES',
+      description: 'Access admin capabilities page',
+      category: 'ADMIN',
+    },
+    {
+      name: 'MANAGE_CAPABILITIES',
+      description: 'Create, edit, and delete capabilities',
+      category: 'ADMIN',
+    },
+
+    // Admin - Capability Settings
+    {
+      name: 'VIEW_ADMIN_CAPABILITY_SETTINGS',
+      description: 'Access admin capability settings page',
+      category: 'ADMIN',
+    },
+    {
+      name: 'MANAGE_CAPABILITY_SETTINGS',
+      description: 'Create, edit, and delete capability settings',
+      category: 'ADMIN',
+    },
+
+    // Admin - Offday Settings
+    {
+      name: 'VIEW_ADMIN_OFFDAY_SETTINGS',
+      description: 'Access admin offday settings page',
+      category: 'ADMIN',
+    },
+    {
+      name: 'MANAGE_OFFDAY_SETTINGS',
+      description: 'Create, edit, and delete offday settings',
+      category: 'ADMIN',
+    },
+
+    // Admin - Overtime Settings
+    {
+      name: 'VIEW_ADMIN_OVERTIME_SETTINGS',
+      description: 'Access admin overtime settings page',
+      category: 'ADMIN',
+    },
+    {
+      name: 'MANAGE_OVERTIME_SETTINGS',
+      description: 'Create, edit, and delete overtime settings',
+      category: 'ADMIN',
+    },
+
+    // Admin - Audit Logs
+    {
+      name: 'VIEW_ADMIN_AUDIT_LOGS',
+      description: 'Access admin audit logs page',
+      category: 'ADMIN',
+    },
+
+    // Admin - Background Jobs
+    {
+      name: 'VIEW_ADMIN_BACKGROUND_JOBS',
+      description: 'Access admin background jobs page',
+      category: 'ADMIN',
+    },
+    {
+      name: 'MANAGE_BACKGROUND_JOBS',
+      description: 'Manage background jobs',
+      category: 'ADMIN',
+    },
+
+    // Personal Timesheet
+    {
+      name: 'VIEW_PERSONAL_TIMESHEET',
+      description: 'Access personal timesheet page',
+      category: 'PERSONAL',
+    },
+    {
+      name: 'EDIT_PERSONAL_TIMESHEET',
+      description: 'Create and edit personal timesheet entries',
+      category: 'PERSONAL',
+    },
+    {
+      name: 'DELETE_PERSONAL_TIMESHEET',
+      description: 'Delete personal timesheet entries',
+      category: 'PERSONAL',
+    },
+
+    // Personal Requests
+    {
+      name: 'VIEW_PERSONAL_REQUESTS',
+      description: 'Access personal off/remote/onsite requests page',
+      category: 'PERSONAL',
+    },
+    {
+      name: 'CREATE_REQUESTS',
+      description: 'Create time-off, remote, and onsite requests',
+      category: 'PERSONAL',
+    },
+    {
+      name: 'EDIT_PERSONAL_REQUESTS',
+      description: 'Edit own requests',
+      category: 'PERSONAL',
+    },
+    {
+      name: 'DELETE_PERSONAL_REQUESTS',
+      description: 'Delete own requests',
+      category: 'PERSONAL',
+    },
+
+    // Team Calendar
+    {
+      name: 'VIEW_TEAM_CALENDAR',
+      description: 'Access team working calendar',
+      category: 'PERSONAL',
+    },
+
+    // Personal Working Time
+    {
+      name: 'VIEW_PERSONAL_WORKING_TIME',
+      description: 'Access personal working time page',
+      category: 'PERSONAL',
+    },
+    {
+      name: 'EDIT_PERSONAL_WORKING_TIME',
+      description: 'Edit personal working time settings',
+      category: 'PERSONAL',
+    },
+
+    // Management - Team Building
+    {
+      name: 'VIEW_MANAGEMENT_TEAM_BUILDING',
+      description: 'Access management team building page',
+      category: 'MANAGEMENT',
+    },
+
+    // Management - Reports
+    {
+      name: 'VIEW_MANAGEMENT_REPORTS',
+      description: 'Access management reports page',
+      category: 'MANAGEMENT',
+    },
+
+    // Management - Team Requests
+    {
+      name: 'VIEW_TEAM_REQUESTS',
+      description: 'View team off/remote/onsite requests',
+      category: 'MANAGEMENT',
+    },
+    {
+      name: 'APPROVE_REQUESTS',
+      description: 'Approve or reject team requests',
+      category: 'MANAGEMENT',
+    },
+    {
+      name: 'EDIT_TEAM_REQUESTS',
+      description: 'Edit team requests',
+      category: 'MANAGEMENT',
+    },
+
+    // Management - Timesheet Management
+    {
+      name: 'VIEW_TEAM_TIMESHEETS',
+      description: 'Access timesheet management page',
+      category: 'MANAGEMENT',
+    },
     {
       name: 'APPROVE_TIMESHEETS',
-      description: 'Can approve/reject timesheets',
-    },
-    { name: 'VIEW_REPORTS', description: 'Can view reports' },
-    {
-      name: 'MANAGE_REQUESTS',
-      description: 'Can manage time-off/remote work requests',
+      description: 'Approve or reject team timesheets',
+      category: 'MANAGEMENT',
     },
     {
-      name: 'VIEW_REQUESTS',
-      description: 'Can view time-off/remote work requests',
+      name: 'EDIT_TEAM_TIMESHEETS',
+      description: 'Edit team timesheet entries',
+      category: 'MANAGEMENT',
+    },
+
+    // Management - Week Submissions
+    {
+      name: 'VIEW_WEEK_SUBMISSIONS',
+      description: 'Access week submissions management page',
+      category: 'MANAGEMENT',
+    },
+    {
+      name: 'APPROVE_WEEK_SUBMISSIONS',
+      description: 'Approve or reject week submissions',
+      category: 'MANAGEMENT',
+    },
+
+    // Management - Timesheet Monitoring
+    {
+      name: 'VIEW_TIMESHEET_MONITORING',
+      description: 'Access timesheet monitoring page',
+      category: 'MANAGEMENT',
+    },
+
+    // Management - Project Management
+    {
+      name: 'VIEW_MANAGEMENT_PROJECTS',
+      description: 'Access management projects page',
+      category: 'MANAGEMENT',
+    },
+    {
+      name: 'MANAGE_PROJECTS',
+      description: 'Create, edit, and delete projects',
+      category: 'MANAGEMENT',
+    },
+
+    // Management - Working Times
+    {
+      name: 'VIEW_TEAM_WORKING_TIMES',
+      description: 'Access employee working times management page',
+      category: 'MANAGEMENT',
+    },
+    {
+      name: 'MANAGE_TEAM_WORKING_TIMES',
+      description: 'Manage employee working time settings',
+      category: 'MANAGEMENT',
+    },
+
+    // Management - Retrospective
+    {
+      name: 'VIEW_RETROSPECTIVE',
+      description: 'Access retrospective page',
+      category: 'MANAGEMENT',
+    },
+
+    // Management - Review Interns
+    {
+      name: 'VIEW_INTERN_REVIEWS',
+      description: 'Access review interns page',
+      category: 'MANAGEMENT',
+    },
+    {
+      name: 'MANAGE_INTERN_REVIEWS',
+      description: 'Create and manage intern reviews',
+      category: 'MANAGEMENT',
+    },
+
+    // Management - Profile Changes
+    {
+      name: 'VIEW_PROFILE_CHANGES',
+      description: 'Access profile changes management page',
+      category: 'MANAGEMENT',
+    },
+    {
+      name: 'APPROVE_PROFILE_CHANGES',
+      description: 'Approve or reject profile change requests',
+      category: 'MANAGEMENT',
     },
   ];
 
@@ -188,7 +538,10 @@ async function seedPermissions() {
   for (const permission of permissionData) {
     const result = await prisma.permission.upsert({
       where: { name: permission.name },
-      update: {},
+      update: {
+        description: permission.description,
+        category: permission.category,
+      },
       create: permission,
     });
     permissions[permission.name.toLowerCase().replace(/_/g, '')] = result;
@@ -201,31 +554,212 @@ async function seedRolePermissions(
   roles: Record<string, any>,
   permissions: Record<string, any>,
 ) {
+  // Clean up existing role permissions to avoid conflicts
+  await prisma.rolePermission.deleteMany({});
+
   const rolePermissionMappings = [
+    // ADMIN: Gets all permissions
     ...Object.values(permissions).map((permission) => ({
       role_id: roles.admin.id,
       permission_id: permission.id,
     })),
+
+    // PM (Project Manager): Management and some admin capabilities
     { role_id: roles.pm.id, permission_id: permissions.viewdashboard.id },
-    { role_id: roles.pm.id, permission_id: permissions.viewusers.id },
-    { role_id: roles.pm.id, permission_id: permissions.viewprojects.id },
-    { role_id: roles.pm.id, permission_id: permissions.manageprojects.id },
-    { role_id: roles.pm.id, permission_id: permissions.viewtimesheets.id },
+    { role_id: roles.pm.id, permission_id: permissions.viewprofile.id },
+    { role_id: roles.pm.id, permission_id: permissions.editprofile.id },
+
+    // Personal features
+    {
+      role_id: roles.pm.id,
+      permission_id: permissions.viewpersonaltimesheet.id,
+    },
+    {
+      role_id: roles.pm.id,
+      permission_id: permissions.editpersonaltimesheet.id,
+    },
+    {
+      role_id: roles.pm.id,
+      permission_id: permissions.deletepersonaltimesheet.id,
+    },
+    {
+      role_id: roles.pm.id,
+      permission_id: permissions.viewpersonalrequests.id,
+    },
+    { role_id: roles.pm.id, permission_id: permissions.createrequests.id },
+    {
+      role_id: roles.pm.id,
+      permission_id: permissions.editpersonalrequests.id,
+    },
+    {
+      role_id: roles.pm.id,
+      permission_id: permissions.deletepersonalrequests.id,
+    },
+    { role_id: roles.pm.id, permission_id: permissions.viewteamcalendar.id },
+    {
+      role_id: roles.pm.id,
+      permission_id: permissions.viewpersonalworkingtime.id,
+    },
+    {
+      role_id: roles.pm.id,
+      permission_id: permissions.editpersonalworkingtime.id,
+    },
+
+    // Management features
+    {
+      role_id: roles.pm.id,
+      permission_id: permissions.viewmanagementteambuilding.id,
+    },
+    {
+      role_id: roles.pm.id,
+      permission_id: permissions.viewmanagementreports.id,
+    },
+    { role_id: roles.pm.id, permission_id: permissions.viewteamrequests.id },
+    { role_id: roles.pm.id, permission_id: permissions.approverequests.id },
+    { role_id: roles.pm.id, permission_id: permissions.editteamrequests.id },
+    { role_id: roles.pm.id, permission_id: permissions.viewteamtimesheets.id },
     { role_id: roles.pm.id, permission_id: permissions.approvetimesheets.id },
-    { role_id: roles.pm.id, permission_id: permissions.viewreports.id },
-    { role_id: roles.pm.id, permission_id: permissions.managerequests.id },
-    { role_id: roles.pm.id, permission_id: permissions.viewrequests.id },
+    { role_id: roles.pm.id, permission_id: permissions.editteamtimesheets.id },
+    { role_id: roles.pm.id, permission_id: permissions.viewweeksubmissions.id },
+    {
+      role_id: roles.pm.id,
+      permission_id: permissions.approveweeksubmissions.id,
+    },
+    {
+      role_id: roles.pm.id,
+      permission_id: permissions.viewtimesheetmonitoring.id,
+    },
+    {
+      role_id: roles.pm.id,
+      permission_id: permissions.viewmanagementprojects.id,
+    },
+    { role_id: roles.pm.id, permission_id: permissions.manageprojects.id },
+    {
+      role_id: roles.pm.id,
+      permission_id: permissions.viewteamworkingtimes.id,
+    },
+    {
+      role_id: roles.pm.id,
+      permission_id: permissions.manageteamworkingtimes.id,
+    },
+    { role_id: roles.pm.id, permission_id: permissions.viewretrospective.id },
+    { role_id: roles.pm.id, permission_id: permissions.viewinternreviews.id },
+    { role_id: roles.pm.id, permission_id: permissions.manageinternreviews.id },
+
+    // HR: User management and some admin features
     { role_id: roles.hr.id, permission_id: permissions.viewdashboard.id },
-    { role_id: roles.hr.id, permission_id: permissions.viewusers.id },
+    { role_id: roles.hr.id, permission_id: permissions.viewprofile.id },
+    { role_id: roles.hr.id, permission_id: permissions.editprofile.id },
+
+    // Admin user management
+    { role_id: roles.hr.id, permission_id: permissions.viewadminusers.id },
     { role_id: roles.hr.id, permission_id: permissions.createuser.id },
     { role_id: roles.hr.id, permission_id: permissions.edituser.id },
-    { role_id: roles.hr.id, permission_id: permissions.viewtimesheets.id },
-    { role_id: roles.hr.id, permission_id: permissions.viewreports.id },
-    { role_id: roles.hr.id, permission_id: permissions.managerequests.id },
-    { role_id: roles.hr.id, permission_id: permissions.viewrequests.id },
+    { role_id: roles.hr.id, permission_id: permissions.viewadminbranches.id },
+    { role_id: roles.hr.id, permission_id: permissions.managebranches.id },
+    { role_id: roles.hr.id, permission_id: permissions.viewadminpositions.id },
+    { role_id: roles.hr.id, permission_id: permissions.managepositions.id },
+
+    // Personal features
+    {
+      role_id: roles.hr.id,
+      permission_id: permissions.viewpersonaltimesheet.id,
+    },
+    {
+      role_id: roles.hr.id,
+      permission_id: permissions.editpersonaltimesheet.id,
+    },
+    {
+      role_id: roles.hr.id,
+      permission_id: permissions.deletepersonaltimesheet.id,
+    },
+    {
+      role_id: roles.hr.id,
+      permission_id: permissions.viewpersonalrequests.id,
+    },
+    { role_id: roles.hr.id, permission_id: permissions.createrequests.id },
+    {
+      role_id: roles.hr.id,
+      permission_id: permissions.editpersonalrequests.id,
+    },
+    {
+      role_id: roles.hr.id,
+      permission_id: permissions.deletepersonalrequests.id,
+    },
+    { role_id: roles.hr.id, permission_id: permissions.viewteamcalendar.id },
+    {
+      role_id: roles.hr.id,
+      permission_id: permissions.viewpersonalworkingtime.id,
+    },
+    {
+      role_id: roles.hr.id,
+      permission_id: permissions.editpersonalworkingtime.id,
+    },
+
+    // Management features
+    {
+      role_id: roles.hr.id,
+      permission_id: permissions.viewmanagementreports.id,
+    },
+    { role_id: roles.hr.id, permission_id: permissions.viewteamrequests.id },
+    { role_id: roles.hr.id, permission_id: permissions.approverequests.id },
+    { role_id: roles.hr.id, permission_id: permissions.editteamrequests.id },
+    { role_id: roles.hr.id, permission_id: permissions.viewteamtimesheets.id },
+    { role_id: roles.hr.id, permission_id: permissions.viewweeksubmissions.id },
+    {
+      role_id: roles.hr.id,
+      permission_id: permissions.viewteamworkingtimes.id,
+    },
+    {
+      role_id: roles.hr.id,
+      permission_id: permissions.manageteamworkingtimes.id,
+    },
+    { role_id: roles.hr.id, permission_id: permissions.viewprofilechanges.id },
+    {
+      role_id: roles.hr.id,
+      permission_id: permissions.approveprofilechanges.id,
+    },
+
+    // USER: Basic user permissions
     { role_id: roles.user.id, permission_id: permissions.viewdashboard.id },
-    { role_id: roles.user.id, permission_id: permissions.viewtimesheets.id },
-    { role_id: roles.user.id, permission_id: permissions.viewrequests.id },
+    { role_id: roles.user.id, permission_id: permissions.viewprofile.id },
+    { role_id: roles.user.id, permission_id: permissions.editprofile.id },
+
+    // Personal features only
+    {
+      role_id: roles.user.id,
+      permission_id: permissions.viewpersonaltimesheet.id,
+    },
+    {
+      role_id: roles.user.id,
+      permission_id: permissions.editpersonaltimesheet.id,
+    },
+    {
+      role_id: roles.user.id,
+      permission_id: permissions.deletepersonaltimesheet.id,
+    },
+    {
+      role_id: roles.user.id,
+      permission_id: permissions.viewpersonalrequests.id,
+    },
+    { role_id: roles.user.id, permission_id: permissions.createrequests.id },
+    {
+      role_id: roles.user.id,
+      permission_id: permissions.editpersonalrequests.id,
+    },
+    {
+      role_id: roles.user.id,
+      permission_id: permissions.deletepersonalrequests.id,
+    },
+    { role_id: roles.user.id, permission_id: permissions.viewteamcalendar.id },
+    {
+      role_id: roles.user.id,
+      permission_id: permissions.viewpersonalworkingtime.id,
+    },
+    {
+      role_id: roles.user.id,
+      permission_id: permissions.editpersonalworkingtime.id,
+    },
   ];
 
   for (const mapping of rolePermissionMappings) {
@@ -382,18 +916,20 @@ async function seedUsers(
           { email: 'david.miller@example.com' },
           { email: 'inactive.user@example.com' },
           { email: 'senior.developer@example.com' },
-        ]
+        ],
       },
       select: { id: true, username: true, email: true },
     });
-    
-    console.log(`Found ${existingUsers.length} existing users, skipping duplicate creation.`);
-    
+
+    console.log(
+      `Found ${existingUsers.length} existing users, skipping duplicate creation.`,
+    );
+
     if (existingUsers.length > 0) {
       // If users already exist, just return them to continue the seeding process
       return existingUsers;
     }
-    
+
     // Generate password hash - use bcrypt if available, otherwise use plaintext for demo
     let passwordHash;
     try {
@@ -405,7 +941,7 @@ async function seedUsers(
       passwordHash = 'Password123!';
       console.log('Using plaintext password - bcrypt failed');
     }
-    
+
     const users: any[] = [];
 
     // Create admin user
@@ -725,14 +1261,16 @@ async function seedProjects(clients: Record<string, any>) {
   const existingProjects = await prisma.project.findMany({
     where: {
       project_code: {
-        in: ['ECOM-2023', 'MBA-2023', 'HR-PORTAL', 'CRM-2023', 'WEB-2023']
-      }
+        in: ['ECOM-2023', 'MBA-2023', 'HR-PORTAL', 'CRM-2023', 'WEB-2023'],
+      },
     },
-    select: { id: true, project_code: true, project_name: true }
+    select: { id: true, project_code: true, project_name: true },
   });
-  
-  console.log(`Found ${existingProjects.length} existing projects, skipping duplicate creation.`);
-  
+
+  console.log(
+    `Found ${existingProjects.length} existing projects, skipping duplicate creation.`,
+  );
+
   if (existingProjects.length > 0) {
     // Map existing projects by project code
     const projects: Record<string, any> = {};
@@ -807,7 +1345,9 @@ async function seedProjects(clients: Record<string, any>) {
       const result = await prisma.project.create({ data: project });
       projects[project.project_code.toLowerCase()] = result;
     } catch (error) {
-      console.warn(`Skipping project ${project.project_code}: ${error.message}`);
+      console.warn(
+        `Skipping project ${project.project_code}: ${error.message}`,
+      );
     }
   }
 
@@ -843,11 +1383,13 @@ async function seedUserProjects(users: any[], projects: Record<string, any>) {
 async function seedTasks(projects: Record<string, any>) {
   // Check for existing tasks
   const existingTasks = await prisma.task.findMany({
-    select: { id: true, project_id: true, task_name: true }
+    select: { id: true, project_id: true, task_name: true },
   });
-  
-  console.log(`Found ${existingTasks.length} existing tasks, skipping duplicate creation if needed.`);
-  
+
+  console.log(
+    `Found ${existingTasks.length} existing tasks, skipping duplicate creation if needed.`,
+  );
+
   if (existingTasks.length > 0) {
     const tasks: Record<string, any> = {};
     // Map existing tasks by project_id-taskname
@@ -855,7 +1397,7 @@ async function seedTasks(projects: Record<string, any>) {
       const key = `${task.project_id}-${task.task_name.toLowerCase().replace(/\s+/g, '')}`;
       tasks[key] = task;
     }
-    
+
     // Check if we have all needed tasks already
     let hasAllTasks = true;
     for (const projectCode of Object.keys(projects)) {
@@ -866,7 +1408,7 @@ async function seedTasks(projects: Record<string, any>) {
         break;
       }
     }
-    
+
     if (hasAllTasks) {
       return tasks;
     }
@@ -981,15 +1523,15 @@ async function seedTasks(projects: Record<string, any>) {
       console.log(`Created task: ${task.task_name}`);
     } catch (error) {
       console.warn(`Skipping task ${task.task_name}: ${error.message}`);
-      
+
       // Try to find existing task
       const existingTask = await prisma.task.findFirst({
         where: {
           project_id: task.project_id,
-          task_name: task.task_name
-        }
+          task_name: task.task_name,
+        },
       });
-      
+
       if (existingTask) {
         const key = `${task.project_id}-${task.task_name.toLowerCase().replace(/\s+/g, '')}`;
         tasks[key] = existingTask;
@@ -1153,39 +1695,45 @@ async function seedTimesheets(
         if (projectTasks.length === 0) continue;
 
         const workingHours = Math.floor(Math.random() * 6) + 2;
-        
+
         // Fix: Safe date creation with validation
         const hour8 = 8 + Math.floor(Math.random() * 2);
         const minute8 = Math.floor(Math.random() * 60);
         const hour17 = 17 + Math.floor(Math.random() * 2);
         const minute17 = Math.floor(Math.random() * 60);
-        
+
         // Ensure valid time values
-        const actualCheckInTime = new Date(`2000-01-01T${hour8.toString().padStart(2, '0')}:${minute8.toString().padStart(2, '0')}:00`);
-        const actualCheckOutTime = new Date(`2000-01-01T${hour17.toString().padStart(2, '0')}:${minute17.toString().padStart(2, '0')}:00`);
-        
+        const actualCheckInTime = new Date(
+          `2000-01-01T${hour8.toString().padStart(2, '0')}:${minute8.toString().padStart(2, '0')}:00`,
+        );
+        const actualCheckOutTime = new Date(
+          `2000-01-01T${hour17.toString().padStart(2, '0')}:${minute17.toString().padStart(2, '0')}:00`,
+        );
+
         // Double-check dates are valid
-        if (isNaN(actualCheckInTime.getTime()) || isNaN(actualCheckOutTime.getTime())) {
+        if (
+          isNaN(actualCheckInTime.getTime()) ||
+          isNaN(actualCheckOutTime.getTime())
+        ) {
           console.warn('Skipping timesheet due to invalid date calculation');
           continue;
         }
-        
+
         // Ensure check-out is after check-in
         if (actualCheckOutTime <= actualCheckInTime) {
           // Adjust check-out time to be at least 4 hours after check-in
-          actualCheckOutTime.setTime(actualCheckInTime.getTime() + 4 * 60 * 60 * 1000);
+          actualCheckOutTime.setTime(
+            actualCheckInTime.getTime() + 4 * 60 * 60 * 1000,
+          );
         }
 
         try {
           // Calculate late/early minutes properly
-          const checkInLate = Math.max(
-            0,
-            (hour8 * 60 + minute8) - (8 * 60 + 30)
-          );
-          
+          const checkInLate = Math.max(0, hour8 * 60 + minute8 - (8 * 60 + 30));
+
           const checkOutEarly = Math.max(
             0,
-            (17 * 60 + 30) - (hour17 * 60 + minute17)
+            17 * 60 + 30 - (hour17 * 60 + minute17),
           );
 
           const timesheet = await prisma.timesheet.create({

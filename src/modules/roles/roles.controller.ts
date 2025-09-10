@@ -13,19 +13,26 @@ import { RolesService } from './roles.service';
 import { CreateRoleDto } from './dto/create-role.dto';
 import { UpdateRoleDto } from './dto/update-role.dto';
 import { AssignPermissionDto } from './dto/assign-permission.dto';
+import { SetRolePermissionsDto } from './dto/set-role-permissions.dto';
 import {
   ApiResponse,
   PaginatedResponse,
 } from 'src/common/dto/api-response.dto';
 import { JwtAuthGuard } from 'src/auth/guards/jwt.guard';
 import { RolesGuard } from 'src/auth/guards/roles.guard';
+import { PermissionGuard } from 'src/auth/guards/permission.guard';
 import { Roles } from 'src/auth/decorators/role.decorator';
+import {
+  Permissions,
+  PermissionOptions,
+} from 'src/auth/decorators/permission.decorator';
 import { AuditLog } from 'src/modules/audit-logs/decorator/audit-log.decorator';
 import {
   createRoleAuditConfig,
   updateRoleAuditConfig,
   deleteRoleAuditConfig,
   assignPermissionAuditConfig,
+  setRolePermissionsAuditConfig,
 } from './config/roles-audit.config';
 
 @Controller('roles')
@@ -117,5 +124,36 @@ export class RolesController {
   async getUsersWithRole(@Param('id') roleId: string) {
     const users = await this.rolesService.getUsersWithRole(roleId);
     return new ApiResponse(users, 'Users with role retrieved successfully');
+  }
+
+  @Post(':id/permissions/set')
+  @UseGuards(JwtAuthGuard, PermissionGuard)
+  @Permissions('MANAGE_ROLES')
+  @AuditLog(setRolePermissionsAuditConfig())
+  async setRolePermissions(
+    @Param('id') roleId: string,
+    @Body() setRolePermissionsDto: SetRolePermissionsDto,
+  ) {
+    const updatedRole = await this.rolesService.setRolePermissions(
+      roleId,
+      setRolePermissionsDto.permission_ids,
+    );
+    return new ApiResponse(
+      updatedRole,
+      'Role permissions updated successfully',
+    );
+  }
+
+  @Get(':id/permissions/grouped')
+  @UseGuards(JwtAuthGuard, PermissionGuard)
+  @Permissions('VIEW_ADMIN_ROLES', 'MANAGE_ROLES')
+  @PermissionOptions({ requireAny: true, enableLogging: true })
+  async getRolePermissionsGroupedByCategory(@Param('id') roleId: string) {
+    const groupedPermissions =
+      await this.rolesService.getRolePermissionsGroupedByCategory(roleId);
+    return new ApiResponse(
+      groupedPermissions,
+      'Role permissions grouped by category retrieved successfully',
+    );
   }
 }
