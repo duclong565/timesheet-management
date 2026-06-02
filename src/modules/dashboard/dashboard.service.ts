@@ -356,7 +356,9 @@ export class DashboardService {
       ]);
 
       // Get user details for top performers
-      const validTopPerformers = topPerformers.filter((tp) => tp.user_id !== null);
+      const validTopPerformers = topPerformers.filter(
+        (tp) => tp.user_id !== null,
+      );
       const userIds = validTopPerformers.map((tp) => tp.user_id!); // Non-null assertion after filter
       const topPerformerDetails = await this.prisma.user.findMany({
         where: { id: { in: userIds } },
@@ -873,7 +875,13 @@ export class DashboardService {
         });
 
         const userDetails = await this.prisma.user.findMany({
-          where: { id: { in: topPerformers.map((tp) => tp.user_id).filter((id): id is string => id !== null) } },
+          where: {
+            id: {
+              in: topPerformers
+                .map((tp) => tp.user_id)
+                .filter((id): id is string => id !== null),
+            },
+          },
           select: { id: true, name: true, surname: true },
         });
 
@@ -1048,7 +1056,7 @@ export class DashboardService {
   }
 
   private generateActivityDescription(log: any): string {
-    const details = log.details as any;
+    const details = log.details;
 
     if (log.table_name === 'timesheets') {
       if (log.action === 'CREATE') {

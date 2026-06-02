@@ -28,7 +28,7 @@ import { PrismaModule } from 'src/prisma/prisma.module';
       }),
       inject: [ConfigService],
     }),
-    PrismaModule
+    PrismaModule,
   ],
   controllers: [AuthController],
   providers: [AuthService, JwtStrategy, GoogleStrategy],

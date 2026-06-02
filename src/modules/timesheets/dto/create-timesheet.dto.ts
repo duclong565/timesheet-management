@@ -1,11 +1,9 @@
 import { z } from 'zod';
 
 export const CreateTimesheetSchema = z.object({
-  date: z
-    .string()
-    .refine((val) => !isNaN(Date.parse(val)), {
-      message: 'date must be a valid ISO 8601 date (e.g., "2025-04-16")',
-    }),
+  date: z.string().refine((val) => !isNaN(Date.parse(val)), {
+    message: 'date must be a valid ISO 8601 date (e.g., "2025-04-16")',
+  }),
   workingTime: z
     .number()
     .positive({ message: 'workingTime must be a positive number' })

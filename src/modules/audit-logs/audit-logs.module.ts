@@ -7,6 +7,6 @@ import { PrismaModule } from 'src/prisma/prisma.module';
   imports: [PrismaModule],
   controllers: [AuditLogsController],
   providers: [AuditLogsService],
-  exports: [AuditLogsService]
+  exports: [AuditLogsService],
 })
 export class AuditLogsModule {}

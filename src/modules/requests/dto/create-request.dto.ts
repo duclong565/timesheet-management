@@ -3,11 +3,9 @@ import { z } from 'zod';
 const PeriodEnum = z.enum(['MORNING', 'AFTERNOON', 'FULL_DAY']);
 const RequestTypeEnum = z.enum(['OFF', 'REMOTE', 'ONSITE']);
 
-const dateSchema = z.coerce.date()
-  .refine(
-    (date) => !isNaN(date.getTime()), 
-    { message: "Invalid date format. Please use YYYY-MM-DD format." }
-  );
+const dateSchema = z.coerce.date().refine((date) => !isNaN(date.getTime()), {
+  message: 'Invalid date format. Please use YYYY-MM-DD format.',
+});
 
 export const createRequestSchema = z
   .object({

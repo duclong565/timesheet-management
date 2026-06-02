@@ -8,10 +8,6 @@ export const createRoleAuditConfig = (): AuditLogMetadata => ({
     if (result?.role?.id) return result.role.id;
     if (result?.data?.id) return result.data.id;
     if (result?.id) return result.id;
-    console.log(
-      'Role creation result structure:',
-      JSON.stringify(result, null, 2),
-    );
     return null;
   },
   getDetails: (result, request) => ({

@@ -7,7 +7,7 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-  
+
   // Enable CORS with explicit configuration
   app.enableCors({
     origin: [
@@ -27,7 +27,7 @@ async function bootstrap() {
     ],
     credentials: true,
   });
-  
+
   app.setGlobalPrefix('time-management');
 
   app.useGlobalPipes(new ZodValidationPipe());

@@ -8,9 +8,8 @@ export const createTimesheetAuditConfig = (): AuditLogMetadata => ({
     if (result?.timesheet?.id) return result.timesheet.id;
     if (result?.data?.id) return result.data.id;
     if (result?.data?.timesheet?.id) return result.data.timesheet.id;
-    console.log('Timesheet result structure:', JSON.stringify(result, null, 2));
     return null;
-  }
+  },
 });
 
 export const responseTimesheetAuditConfig = (): AuditLogMetadata => ({
@@ -20,12 +19,11 @@ export const responseTimesheetAuditConfig = (): AuditLogMetadata => ({
     if (result?.timesheet?.id) return result.timesheet.id;
     if (result?.data?.id) return result.data.id;
     if (result?.data?.timesheet?.id) return result.data.timesheet.id;
-    console.log('Response result structure:', JSON.stringify(result, null, 2));
     return null;
   },
   getDetails: (result, request) => ({
     action: request.body.action,
     old_status: 'PENDING',
     new_status: request.body.action === 'APPROVE' ? 'APPROVED' : 'REJECTED',
-  })
+  }),
 });

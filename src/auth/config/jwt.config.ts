@@ -11,8 +11,8 @@ export default registerAs('jwt', () => {
   const config = {
     secret: process.env.JWT_SECRET,
     expiresIn: process.env.JWT_EXPIRES_IN || '1d',
-  }
+  };
 
   // Parse to see if the config is a valid type
   return jwtConfigSchema.parse(config);
-})
+});

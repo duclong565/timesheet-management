@@ -40,8 +40,8 @@ export class AuthService {
       email: createUserDto.email,
       name: createUserDto.name,
       surname: createUserDto.surname,
-			allowedLeavedays: createUserDto.allowedLeavedays,
-			is_active: createUserDto.is_active,
+      allowedLeavedays: createUserDto.allowedLeavedays,
+      is_active: createUserDto.is_active,
     });
 
     const payload = { username: newUser.username, sub: newUser.id };
@@ -96,7 +96,8 @@ export class AuthService {
     if (!user) {
       //If user does not exist, create a new one
       //Generate a unique username
-      const username = userData.email.split('@')[0] + Math.floor(Math.random() * 1000);
+      const username =
+        userData.email.split('@')[0] + Math.floor(Math.random() * 1000);
 
       user = await this.userService.createUser({
         username,

@@ -12,7 +12,9 @@ export const updateUserSchema = z.object({
   position_id: z.string().uuid().optional(),
   allowedLeavedays: z.number().nonnegative().optional(),
   is_active: z.boolean().optional(),
-  employee_type: z.enum(['FULLTIME', 'PARTTIME', 'INTERN', 'PROBATION']).optional(),
+  employee_type: z
+    .enum(['FULLTIME', 'PARTTIME', 'INTERN', 'PROBATION'])
+    .optional(),
   level: z.enum(['JUNIOR', 'MIDDLE', 'SENIOR', 'LEAD', 'MANAGER']).optional(),
   phone: z.string().optional(),
   address: z.string().optional(),

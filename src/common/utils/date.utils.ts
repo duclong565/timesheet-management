@@ -68,7 +68,7 @@ export function parseToStartOfDay(
   const year = date.getUTCFullYear();
   const month = date.getUTCMonth();
   const day = date.getUTCDate();
-  
+
   return new Date(Date.UTC(year, month, day, 0, 0, 0, 0));
 }
 
@@ -90,7 +90,7 @@ export function parseToEndOfDay(
   const year = date.getUTCFullYear();
   const month = date.getUTCMonth();
   const day = date.getUTCDate();
-  
+
   return new Date(Date.UTC(year, month, day, 23, 59, 59, 999));
 }
 
